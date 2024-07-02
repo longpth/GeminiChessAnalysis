@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ContentView xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
+             xmlns:customviews="clr-namespace:GeminiChessAnalysis.CustomItems"
+             x:Class="GeminiChessAnalysis.Views.BoardView"
+             BackgroundColor="LightSkyBlue"
+             x:Name="MyBoardView">
+    <!-- Bind chessboard cells to grid positions -->
+    <ContentView.Content>
+        <StackLayout Orientation="Vertical">
+            <ScrollView Orientation="Horizontal">
+                <customviews:BindableStackLayout Orientation="Horizontal" SelectedIndex="{Binding MoveIndex}" BindableLayout.ItemsSource="{Binding MoveList}" HeightRequest="20">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <customviews:ClickableLabel Text="{Binding StrMove}" Command="{Binding Path=BindingContext.ReconstructHistoryMoves, Source={x:Reference MyBoardView}}" CommandParameter="{Binding MoveIndex}">
+                            </customviews:ClickableLabel>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </customviews:BindableStackLayout>
+            </ScrollView>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Label Text="Pgn: " Grid.Column="0" VerticalOptions="Center"/>
+                <ScrollView Orientation="Horizontal" Grid.Column="1" HorizontalOptions="FillAndExpand">
+                    <customviews:BindableStackLayout Orientation="Horizontal" BindableLayout.ItemsSource="{Binding PgnMoveList}" HeightRequest="20">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <customviews:ClickableLabel Text="{Binding StrMove}" Command="{Binding Path=BindingContext.ReconstructHistoryMoves, Source={x:Reference MyBoardView}}" CommandParameter="{Binding MoveIndex}">
+                                </customviews:ClickableLabel>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </customviews:BindableStackLayout>
+                </ScrollView>
+            </Grid>
+            <AbsoluteLayout x:Name="BoardViewAbsoluteLayout" >
+
+            </AbsoluteLayout>
+        </StackLayout>
+    </ContentView.Content>
+</ContentView>

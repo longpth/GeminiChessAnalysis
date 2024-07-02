@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Frame
+    xmlns="http://xamarin.com/schemas/2014/forms"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GeminiChessAnalysis.Views.PieceView"
+    BorderColor="Transparent"
+    BackgroundColor="Transparent"
+    CornerRadius="0"
+    >
+    <Frame.GestureRecognizers>
+        <TapGestureRecognizer Command="{Binding TapCommand}"/>
+        <!--<DragGestureRecognizer CanDrag="True" DragStartingCommand="{Binding DragCommand}"></DragGestureRecognizer>
+        <DropGestureRecognizer AllowDrop="True" Drop="OnDropped" />-->
+    </Frame.GestureRecognizers>
+    <Grid HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand">
+        <Image x:Name="ChessPieceImage"
+                Aspect="Fill"
+                Source="{Binding ImageSource}"
+                IsVisible="{Binding ImageVisible}"
+                Scale="{Binding ImageScale}"
+                HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand">
+        </Image>
+        <!-- Circle in the center -->
+        <BoxView x:Name="Circle" IsVisible="{Binding CircleVisible}" Color="Red" Opacity="0.5" CornerRadius="50" HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="100" HeightRequest="100" />
+    </Grid>
+</Frame>

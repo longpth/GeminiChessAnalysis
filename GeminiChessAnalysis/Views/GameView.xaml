@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GeminiChessAnalysis.Views.GameView"
+             xmlns:local="clr-namespace:GeminiChessAnalysis.Views"
+             xmlns:vm="clr-namespace:GeminiChessAnalysis.ViewModels"
+             xmlns:helpers="clr-namespace:GeminiChessAnalysis.Helpers"
+             BackgroundColor="LightSkyBlue"
+             >
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <helpers:PercentageToWidthConverter x:Key="PercentageToWidthConverter" />
+            <!-- Define the converter here -->
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <StackLayout Orientation="Vertical">
+        <!-- Include the board view -->
+        <local:BoardView x:Name="BoardView"/>
+        <!-- Controls for managing the game -->
+        <Grid HorizontalOptions="FillAndExpand">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <!--<ColumnDefinition Width="*" />-->
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ImageButton Source="button_backward.png"
+                     Command="{Binding PreviousMoveCommand}"
+                     Grid.Column="0"
+                     Aspect="AspectFit"
+                     BackgroundColor="Transparent" 
+                     HeightRequest="20"/>
+            <ImageButton Source="button_forward.png"
+                     Command="{Binding NextMoveCommand}"
+                     Grid.Column="1"
+                     Aspect="AspectFit"
+                     BackgroundColor="Transparent" 
+                     HeightRequest="20"/>
+            <Frame Grid.Column="2" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding NewGameCommand}" NumberOfTapsRequired="1" />
+                </Frame.GestureRecognizers>
+                <Label Text="New" HorizontalOptions="Center" VerticalOptions="CenterAndExpand" TextColor="Green" FontSize="Medium" />
+            </Frame>
+            <Frame Grid.Column="3" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding FlipSideCommand}" NumberOfTapsRequired="1" />
+                </Frame.GestureRecognizers>
+                <Label Text="Flip Board" HorizontalOptions="Center" VerticalOptions="CenterAndExpand" TextColor="Green" FontSize="Medium" />
+            </Frame>
+            <!--<Button Text="Flip" Command="{Binding FlipSideCommand}" Grid.Column="3" Margin="5,0" />-->
+        </Grid>
+        <!--<Label Text="{Binding BoardViewModel.FenString}" HorizontalOptions="Center" VerticalOptions="Center" />
+        <Label Text="{Binding BoardViewModel.BestMove}" HorizontalOptions="Center" VerticalOptions="Center" />
+        <Label Text="{Binding BoardViewModel.StockfishEvaluation}" HorizontalOptions="Center" VerticalOptions="Center" />-->
+        <Grid HorizontalOptions="FillAndExpand" HeightRequest="10" ColumnSpacing="0" RowSpacing="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- White win possibility -->
+            <BoxView Color="White" Grid.Column="0" HorizontalOptions="FillAndExpand">
+                <BoxView.WidthRequest>
+                    <Binding Path="BoardViewModel.WhiteWinPercentage" Converter="{StaticResource PercentageToWidthConverter}" />
+                </BoxView.WidthRequest>
+            </BoxView>
+
+            <!-- Black win possibility -->
+            <BoxView Color="Black" Grid.Column="1" HorizontalOptions="FillAndExpand">
+                <BoxView.WidthRequest>
+                    <Binding Path="BoardViewModel.BlackWinPercentage" Converter="{StaticResource PercentageToWidthConverter}" />
+                </BoxView.WidthRequest>
+            </BoxView>
+        </Grid>
+        <ScrollView VerticalOptions="FillAndExpand">
+            <Label VerticalOptions="Start" HorizontalOptions="FillAndExpand" HorizontalTextAlignment="Start" VerticalTextAlignment="Start">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Google Gemini: " FontAttributes="Bold"/>
+                        <Span Text="{Binding BoardViewModel.GeminiStringResult}"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+        </ScrollView>
+    </StackLayout>
+
+</ContentPage>

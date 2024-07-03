@@ -1,28 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="1" android:versionName="1.0" package="com.longpth.geminichessanalysis">
-    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="33" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-	<application android:label="@string/app_name" android:theme="@style/MainTheme" android:icon="@mipmap/icon">
-		<activity android:name="com.longpth.geminichessanalysis.MainActivity" android:exported="true" android:configChanges="orientation|screenSize" android:screenOrientation="portrait">
-			<!-- Intent filter for launching the app -->
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-			<!-- Intent filter for handling SEND action -->
-			<intent-filter>
-				<action android:name="android.intent.action.SEND" />
-				<category android:name="android.intent.category.DEFAULT" />
-				<!-- Handles PGN files -->
-				<data android:mimeType="text/plain" />
-			</intent-filter>
-			<!-- Intent filter for handling VIEW action -->
-			<intent-filter>
-				<action android:name="android.intent.action.VIEW" />
-				<category android:name="android.intent.category.DEFAULT" />
-				<!-- Handles PGN files -->
-				<data android:mimeType="text/plain" />
-			</intent-filter>
-		</activity>
-	</application>
+	<uses-sdk android:minSdkVersion="28" android:targetSdkVersion="33" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<application android:label="GeminiChessAnalysis" android:theme="@style/MainTheme" android:icon="@mipmap/icon"></application>
 </manifest>

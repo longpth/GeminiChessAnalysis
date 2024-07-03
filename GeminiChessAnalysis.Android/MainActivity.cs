@@ -1,18 +1,30 @@
 ﻿using Android.App;
 using Android.Content.PM;
+using Android.Runtime;
 using Android.OS;
 using Android.Content;
-using GeminiChessAnalysis;
-using Xamarin.Forms.Platform.Android;
 using GeminiChessAnalysis.Services;
+using Android.Views;
 
-namespace com.longpth.GeminiChessAnalysis
+namespace GeminiChessAnalysis.Droid
 {
-    [Activity(Label = "GeminiChessAnalysis", Icon = "@mipmap/icon", Theme = "@style/MySplash", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize, ScreenOrientation = ScreenOrientation.Portrait)]
-    public class MainActivity : FormsAppCompatActivity
+    [Activity(Label = "@string/app_name", Exported = true ,Icon = "@mipmap/icon", Theme = "@style/MySplash", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize, ScreenOrientation = ScreenOrientation.Portrait)]
+    [IntentFilter(new[] { Intent.ActionMain }, Categories = new[] {
+        Intent.CategoryLauncher
+        })]
+    [IntentFilter(new[] { Intent.ActionSend }, Categories = new[] {
+        Intent.CategoryDefault
+        }, DataMimeType = "text/plain")]
+    [IntentFilter(new[] { Intent.ActionView }, Categories = new[] {
+        Intent.CategoryDefault
+        }, DataMimeType = "text/plain")]
+
+    public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
     {
         protected override void OnCreate(Bundle savedInstanceState)
         {
+            base.Window.RequestFeature(WindowFeatures.NoTitle); // This line will hide the title bar
+
             base.OnCreate(savedInstanceState);
 
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
@@ -49,9 +61,10 @@ namespace com.longpth.GeminiChessAnalysis
             MessageService.Instance.NotifySubscribers(pgn_text);
         }
 
-        public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
+        public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
         {
             Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+
             base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }

@@ -8,7 +8,7 @@ using Android.Views;
 
 namespace GeminiChessAnalysis.Droid
 {
-    [Activity(Label = "@string/app_name", Exported = true ,Icon = "@mipmap/icon", Theme = "@style/MySplash", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize, ScreenOrientation = ScreenOrientation.Portrait)]
+    [Activity(Label = "@string/app_name", Exported = true ,Icon = "@mipmap/icon", Theme = "@style/MySplash", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize, ScreenOrientation = ScreenOrientation.Portrait, LaunchMode = LaunchMode.SingleTask)]
     [IntentFilter(new[] { Intent.ActionMain }, Categories = new[] {
         Intent.CategoryLauncher
         })]
@@ -36,6 +36,12 @@ namespace GeminiChessAnalysis.Droid
 
             // Handle the intent
             HandleIntent(Intent);
+        }
+
+        protected override void OnNewIntent(Intent intent)
+        {
+            base.OnNewIntent(intent);
+            HandleIntent(intent);
         }
 
         private void HandleIntent(Intent intent)

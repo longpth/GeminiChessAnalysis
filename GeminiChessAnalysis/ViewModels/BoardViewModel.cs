@@ -66,6 +66,7 @@ namespace GeminiChessAnalysis.ViewModels
         private bool _bestMoveAvailable = false;
         private string _question_for_gemnini = "";
         private ChessGame _chessGame;
+        private bool _isPgnMove = false;
         #endregion
 
         #region Properties
@@ -316,7 +317,7 @@ namespace GeminiChessAnalysis.ViewModels
         }
         private void ProcessPgnImportText(string pgnText)
         {
-            string moveParts = ExtractMoves(pgnText);
+            string moveParts = ExtractMovesFromLoadedPgn(pgnText);
 
             moveParts = moveParts.Replace("\n", " ").Replace("+","");
 
@@ -355,9 +356,11 @@ namespace GeminiChessAnalysis.ViewModels
 
             _chessGame = new ChessGame();
             _chessGame.ApplyMovesFromPGN(moveParts);
-        }
 
-        public string ExtractMoves(string pgnText)
+            // switch to loaded pgn move, instead of moving manually by user
+            _isPgnMove = true;
+        }
+        private string ExtractMovesFromLoadedPgn(string pgnText)
         {
             // Find the index of the last header closing bracket
             int lastHeaderEndIndex = pgnText.LastIndexOf(']');
@@ -385,6 +388,76 @@ namespace GeminiChessAnalysis.ViewModels
             return movesPart;
         }
 
+        private List<List<Piece>> CreateBoardCellsFromFen(string fenString)
+        {
+            List<List<Piece>> ret = new List<List<Piece>>();
+
+            // Split the FEN string to get the board layout part
+            string[] fenParts = fenString.Split(' ');
+            string boardLayout = fenParts[0];
+
+            // Split the board layout into ranks
+            string[] ranks = boardLayout.Split('/');
+
+            // Iterate through each rank
+            for (int row = 0; row < ranks.Length; row++)
+            {
+                List<Piece> rankPieces = new List<Piece>();
+                string rank = ranks[row];
+                int col = 0;
+
+                // Iterate through each character in the rank
+                foreach (char c in rank)
+                {
+                    if (char.IsDigit(c))
+                    {
+                        // Empty squares
+                        int emptySquares = int.Parse(c.ToString());
+                        for (int i = 0; i < emptySquares; i++)
+                        {
+                            rankPieces.Add(null); // Add null for empty squares
+                            col++;
+                        }
+                    }
+                    else
+                    {
+                        // Non-empty squares (pieces)
+                        Piece piece = CreatePieceFromFenChar(c, row, col);
+                        rankPieces.Add(piece);
+                        col++;
+                    }
+                }
+
+                ret.Add(rankPieces);
+            }
+
+            return ret;
+        }
+
+        private Piece CreatePieceFromFenChar(char fenChar, int row, int col)
+        {
+            EnumPieceColor color = char.IsUpper(fenChar) ? EnumPieceColor.White : EnumPieceColor.Black;
+            fenChar = char.ToLower(fenChar);
+
+            switch (fenChar)
+            {
+                case 'p':
+                    return new Piece { Type = EnumPieceType.Pawn, Color = color, RowIdx = row, ColIdx = col };
+                case 'r':
+                    return new Piece { Type = EnumPieceType.Rook, Color = color, RowIdx = row, ColIdx = col };
+                case 'n':
+                    return new Piece { Type = EnumPieceType.Knight, Color = color, RowIdx = row, ColIdx = col };
+                case 'b':
+                    return new Piece { Type = EnumPieceType.Bishop, Color = color, RowIdx = row, ColIdx = col };
+                case 'q':
+                    return new Piece { Type = EnumPieceType.Queen, Color = color, RowIdx = row, ColIdx = col };
+                case 'k':
+                    return new Piece { Type = EnumPieceType.King, Color = color, RowIdx = row, ColIdx = col };
+                default:
+                    throw new ArgumentException($"Invalid FEN character: {fenChar}");
+            }
+        }
+
         // Method to initialize Stockfish in a separate thread
         private void InitializeStockfish()
         {
@@ -398,7 +471,6 @@ namespace GeminiChessAnalysis.ViewModels
                 // Perform additional initialization or UI updates after Stockfish is initialized
             }).Start();
         }
-
 
         private ObservableCollection<MoveItem> _moveList = new ObservableCollection<MoveItem>();
         public ObservableCollection<MoveItem> MoveList
@@ -500,64 +572,64 @@ namespace GeminiChessAnalysis.ViewModels
             //***************************** Initialize pawns *****************************************
             for (int i = 0; i < Size; i++)
             {
-                _pawns[(int)EnumPieceColor.White,i] = new Piece(EnumPieceType.Pawn, EnumPieceColor.White, "white_pawn.png") { RowIdx = 6, ColIdx = i, Index = i };
+                _pawns[(int)EnumPieceColor.White,i] = new Piece(EnumPieceType.Pawn, EnumPieceColor.White) { RowIdx = 6, ColIdx = i, Index = i };
                 ChessPiecesForDisplaying[6][i].Copy(_pawns[(int)EnumPieceColor.White, i]);
 
-                _pawns[(int)EnumPieceColor.Black, i] = new Piece(EnumPieceType.Pawn, EnumPieceColor.Black, "black_pawn.png") { RowIdx = 1, ColIdx = i, Index = i };
+                _pawns[(int)EnumPieceColor.Black, i] = new Piece(EnumPieceType.Pawn, EnumPieceColor.Black) { RowIdx = 1, ColIdx = i, Index = i };
                 ChessPiecesForDisplaying[1][i].Copy(_pawns[(int)EnumPieceColor.Black, i]);
             }
 
             //****************************** Initialize rooks *****************************************
-            _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.White, "white_rook.png") { RowIdx = 7, ColIdx = 0, Index = 0 };
+            _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.White) { RowIdx = 7, ColIdx = 0, Index = 0 };
             ChessPiecesForDisplaying[7][0].Copy(_rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide]);
 
-            _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.White, "white_rook.png") { RowIdx = 7, ColIdx = 7, Index = 1 };
+            _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.White) { RowIdx = 7, ColIdx = 7, Index = 1 };
             ChessPiecesForDisplaying[7][7].Copy(_rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide]);
 
-            _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.Black, "black_rook.png") { RowIdx = 0, ColIdx = 0, Index = 0 };
+            _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 0, Index = 0 };
             ChessPiecesForDisplaying[0][0].Copy(_rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide]);
 
-            _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.Black, "black_rook.png") { RowIdx = 0, ColIdx = 7, Index = 1 };
+            _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 7, Index = 1 };
             ChessPiecesForDisplaying[0][7].Copy(_rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide]);
 
             //***************************** Initialize knights ****************************************
-            _knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.White, "white_knight.png") { RowIdx = 7, ColIdx = 1, Index = 0 };
+            _knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.White) { RowIdx = 7, ColIdx = 1, Index = 0 };
             ChessPiecesForDisplaying[7][1].Copy(_knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide]);
 
-            _knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.White, "white_knight.png") { RowIdx = 7, ColIdx = 6, Index = 1 };
+            _knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.White) { RowIdx = 7, ColIdx = 6, Index = 1 };
             ChessPiecesForDisplaying[7][6].Copy(_knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide]);
 
-            _knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.Black, "black_knight.png") { RowIdx = 0, ColIdx = 1, Index = 0 };
+            _knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 1, Index = 0 };
             ChessPiecesForDisplaying[0][1].Copy(_knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide]);
 
-            _knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.Black, "black_knight.png") { RowIdx = 0, ColIdx = 6, Index = 1 };
+            _knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 6, Index = 1 };
             ChessPiecesForDisplaying[0][6].Copy(_knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide]);
 
             //***************************** Initialize bishops ******************************************
-            _bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.White, "white_bishop.png") { RowIdx = 7, ColIdx = 2, Index = 0 };
+            _bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.White) { RowIdx = 7, ColIdx = 2, Index = 0 };
             ChessPiecesForDisplaying[7][2].Copy(_bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide]);
 
-            _bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.White, "white_bishop.png") { RowIdx = 7, ColIdx = 5 , Index = 1 };
+            _bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.White) { RowIdx = 7, ColIdx = 5 , Index = 1 };
             ChessPiecesForDisplaying[7][5].Copy(_bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide]);
 
-            _bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.Black, "black_bishop.png") { RowIdx = 0, ColIdx = 2, Index = 0 };
+            _bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 2, Index = 0 };
             ChessPiecesForDisplaying[0][2].Copy(_bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide]);
 
-            _bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.Black, "black_bishop.png") { RowIdx = 0, ColIdx = 5, Index = 1 };
+            _bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 5, Index = 1 };
             ChessPiecesForDisplaying[0][5].Copy(_bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide]);
 
             //******************************* Initialize queens *******************************************
-            _queens[0,(int)EnumPieceColor.White] = new Piece(EnumPieceType.Queen, EnumPieceColor.White, "white_queen.png") { RowIdx = 7, ColIdx = 3 };
+            _queens[0,(int)EnumPieceColor.White] = new Piece(EnumPieceType.Queen, EnumPieceColor.White) { RowIdx = 7, ColIdx = 3 };
             ChessPiecesForDisplaying[7][3].Copy(_queens[0,(int)EnumPieceColor.White]);
 
-            _queens[0,(int)EnumPieceColor.Black] = new Piece(EnumPieceType.Queen, EnumPieceColor.Black, "black_queen.png") { RowIdx = 0, ColIdx = 3 };
+            _queens[0,(int)EnumPieceColor.Black] = new Piece(EnumPieceType.Queen, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 3 };
             ChessPiecesForDisplaying[0][3].Copy(_queens[0,(int)EnumPieceColor.Black]);
 
             //******************************* Initialize kings ********************************************
-            _kings[0,(int)EnumPieceColor.White] = new Piece(EnumPieceType.King, EnumPieceColor.White, "white_king.png") { RowIdx = 7, ColIdx = 4 };
+            _kings[0,(int)EnumPieceColor.White] = new Piece(EnumPieceType.King, EnumPieceColor.White) { RowIdx = 7, ColIdx = 4 };
             ChessPiecesForDisplaying[7][4].Copy(_kings[0,(int)EnumPieceColor.White]);
 
-            _kings[0,(int)EnumPieceColor.Black] = new Piece(EnumPieceType.King, EnumPieceColor.Black, "black_king.png") { RowIdx = 0, ColIdx = 4 };
+            _kings[0,(int)EnumPieceColor.Black] = new Piece(EnumPieceType.King, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 4 };
             ChessPiecesForDisplaying[0][4].Copy(_kings[0,(int)EnumPieceColor.Black]);
 
             foreach (var row in ChessPiecesForDisplaying)
@@ -1671,6 +1743,8 @@ namespace GeminiChessAnalysis.ViewModels
             var snapshot = _snapShots[index];
             StringBuilder fenBuilder = new StringBuilder();
             int emptySquares = 0;
+
+            // this is for 64 cells of the chess board
             for (int i = 0; i < Size; i++)
             {
                 for (int j = 0; j < Size; j++)
@@ -1705,6 +1779,7 @@ namespace GeminiChessAnalysis.ViewModels
                 }
             }
 
+            // This is for chess pieces ( white/black kings, queens, rooks, bishops, knights, pawns )
             RestorePiecesFromSnapshotAt(index);
 
             // Append active player's turn
@@ -2162,6 +2237,9 @@ namespace GeminiChessAnalysis.ViewModels
             }
         }
 
+        /// <summary>
+        /// Reset board layout, moves, move snapshots, ... to start a new game
+        /// </summary>
         public void NewBoardSetup()
         {
             IsWhiteTurn= true;

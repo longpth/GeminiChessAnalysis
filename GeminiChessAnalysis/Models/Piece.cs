@@ -302,12 +302,12 @@ namespace GeminiChessAnalysis.Models
         #endregion
 
         #region Constructor
-        public Piece(EnumPieceType type = EnumPieceType.None, EnumPieceColor color = EnumPieceColor.None, string imagePath = null)
+        public Piece(EnumPieceType type = EnumPieceType.None, EnumPieceColor color = EnumPieceColor.None)
         {
             Type = type;
             Color = color;
             BackgroundColor = PieceBackgroundColor.UnselectedColor;
-            ImagePath = imagePath;
+            ImagePath = GetImagePath(type, color);
             ImageScale = ImageScaleNormalDisplay * DeviceDisplay.MainDisplayInfo.Density;
             CellWidth = CalculateWidthSize();
             CellHeight = CalculateHeightSize();
@@ -362,6 +362,40 @@ namespace GeminiChessAnalysis.Models
         #endregion
 
         #region Private Method
+
+        private string GetImagePath(EnumPieceType type, EnumPieceColor color)
+        {
+            string prefix = color == EnumPieceColor.White ? "white_" : "black_";
+            string path = "";
+
+            switch (type)
+            {
+                case EnumPieceType.Pawn:
+                    path = $"{prefix}pawn.png";
+                    break;
+                case EnumPieceType.Knight:
+                    path = $"{prefix}knight.png";
+                    break;
+                case EnumPieceType.Bishop:
+                    path = $"{prefix}bishop.png";
+                    break;
+                case EnumPieceType.Rook:
+                    path = $"{prefix}rook.png";
+                    break;
+                case EnumPieceType.Queen:
+                    path = $"{prefix}queen.png";
+                    break;
+                case EnumPieceType.King:
+                    path = $"{prefix}king.png";
+                    break;
+                case EnumPieceType.None:
+                    path = "";
+                    break;
+            }
+
+            return path;
+        }
+
         #endregion
 
         #region Public Method

@@ -327,12 +327,12 @@ namespace GeminiChessAnalysis.Models
             CellWidth = other.CellWidth;
             CellHeight = other.CellHeight;
             CellSize = other.CellSize;
-            HasNotMoved = other.HasNotMoved;
+            Index = other.Index;
             MoveInfo.TranslateX = other.MoveInfo.TranslateX;
             MoveInfo.TranslateY = other.MoveInfo.TranslateY;
+            HasNotMoved = other.HasNotMoved;
             RowIdx = other.RowIdx;
             ColIdx = other.ColIdx;
-            Index = other.Index;
             IsAlive = other.IsAlive;
         }
 

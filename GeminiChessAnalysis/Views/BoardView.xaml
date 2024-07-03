@@ -23,7 +23,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Label Text="Pgn: " Grid.Column="0" VerticalOptions="Center"/>
+                <Label Text="Imported Pgn: " Grid.Column="0" VerticalOptions="Center"/>
                 <ScrollView Orientation="Horizontal" Grid.Column="1" HorizontalOptions="FillAndExpand">
                     <customviews:BindableStackLayout Orientation="Horizontal" BindableLayout.ItemsSource="{Binding PgnMoveList}" HeightRequest="20">
                         <BindableLayout.ItemTemplate>

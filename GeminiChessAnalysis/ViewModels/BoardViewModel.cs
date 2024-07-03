@@ -326,6 +326,9 @@ namespace GeminiChessAnalysis.ViewModels
             // Split the PGN text into individual moves
             var moves = moveParts.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+            // Reset the Board First
+            NewBoardSetup();
+
             // Initialize the move index
             int moveIndex = 0;
 
@@ -350,6 +353,16 @@ namespace GeminiChessAnalysis.ViewModels
                 // Add the MoveItem to the PgnMoveList
                 PgnMoveList.Add(moveItem);
 
+                // Clone the MoveItem for MoveList
+                var clonedMoveItem = new MoveItem
+                {
+                    StrMove = moveItem.StrMove,
+                    MoveIndex = moveItem.MoveIndex
+                };
+
+                // Add the cloned MoveItem to the MoveList
+                MoveList.Add(clonedMoveItem);
+
                 // Increment the move index
                 moveIndex++;
             }
@@ -357,9 +370,104 @@ namespace GeminiChessAnalysis.ViewModels
             _chessGame = new ChessGame();
             _chessGame.ApplyMovesFromPGN(moveParts);
 
+            var prevfen = _chessGame.FENList[0];
+
+            foreach (var fen in _chessGame.FENList)
+            {
+                _snapShots.Add(CreateBoardCellsFromFen(fen, _whiteSide==EnumWhiteSide.Bottom));
+                UpdatePiecesFromFens(prevfen, fen, _whiteSide == EnumWhiteSide.Bottom);
+                CreateSnapshotForPieces();
+                prevfen = fen;
+            }
+
             // switch to loaded pgn move, instead of moving manually by user
             _isPgnMove = true;
         }
+
+        private void UpdatePiecesFromFens(string initialFen, string currentFen, bool isWhiteAtBottom)
+        {
+            var initialBoard = CreateBoardCellsFromFen(initialFen, isWhiteAtBottom);
+            var currentBoard = CreateBoardCellsFromFen(currentFen, isWhiteAtBottom);
+
+            // Iterate through the initial board and update the pieces
+            for (int row = 0; row < initialBoard.Count; row++)
+            {
+                for (int col = 0; col < initialBoard[row].Count; col++)
+                {
+                    var initialPiece = initialBoard[row][col];
+                    var currentPiece = currentBoard[row][col];
+
+                    if (initialPiece != null)
+                    {
+                        if (currentPiece == null)
+                        {
+                            // Piece has been captured
+                            initialPiece.IsAlive = false;
+                        }
+                        else if (initialPiece.Type != currentPiece.Type || initialPiece.Color != currentPiece.Color)
+                        {
+                            // Piece has moved or been replaced
+                            initialPiece.RowIdx = currentPiece.RowIdx;
+                            initialPiece.ColIdx = currentPiece.ColIdx;
+                            initialPiece.HasNotMoved = false;
+                        }
+                    }
+                    else if (currentPiece != null)
+                    {
+                        // New piece has been created
+                        // You can handle this case if needed
+                    }
+                }
+            }
+
+            // Update the piece arrays (_pawns, _rooks, _knights, _bishops, _queens, _kings)
+            UpdatePieces(_pawns, initialBoard);
+            UpdatePieces(_rooks, initialBoard);
+            UpdatePieces(_knights, initialBoard);
+            UpdatePieces(_bishops, initialBoard);
+            UpdatePieces(_queens, initialBoard);
+            UpdatePieces(_kings, initialBoard);
+        }
+
+        private void ResetPieceToOriginalPosition()
+        {
+            //***************************** Initialize pawns *****************************************
+            for (int i = 0; i < Size; i++)
+            {
+                _pawns[(int)EnumPieceColor.White, i] = new Piece(EnumPieceType.Pawn, EnumPieceColor.White) { RowIdx = 6, ColIdx = i, Index = i };
+                _pawns[(int)EnumPieceColor.Black, i] = new Piece(EnumPieceType.Pawn, EnumPieceColor.Black) { RowIdx = 1, ColIdx = i, Index = i };
+            }
+
+            //****************************** Initialize rooks *****************************************
+            _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.White) { RowIdx = 7, ColIdx = 0, Index = 0 };
+            _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.White) { RowIdx = 7, ColIdx = 7, Index = 1 };
+
+            _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 0, Index = 0 };
+            _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Rook, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 7, Index = 1 };
+
+            //***************************** Initialize knights ****************************************
+            _knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.White) { RowIdx = 7, ColIdx = 1, Index = 0 };
+            _knights[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.White) { RowIdx = 7, ColIdx = 6, Index = 1 };
+
+            _knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 1, Index = 0 };
+            _knights[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Knight, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 6, Index = 1 };
+
+            //***************************** Initialize bishops ******************************************
+            _bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.White) { RowIdx = 7, ColIdx = 2, Index = 0 };
+            _bishops[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.White) { RowIdx = 7, ColIdx = 5, Index = 1 };
+
+            _bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 2, Index = 0 };
+            _bishops[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.KingSide] = new Piece(EnumPieceType.Bishop, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 5, Index = 1 };
+
+            //******************************* Initialize queens *******************************************
+            _queens[0, (int)EnumPieceColor.White] = new Piece(EnumPieceType.Queen, EnumPieceColor.White) { RowIdx = 7, ColIdx = 3 };
+            _queens[0, (int)EnumPieceColor.Black] = new Piece(EnumPieceType.Queen, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 3 };
+
+            //******************************* Initialize kings ********************************************
+            _kings[0, (int)EnumPieceColor.White] = new Piece(EnumPieceType.King, EnumPieceColor.White) { RowIdx = 7, ColIdx = 4 };
+            _kings[0, (int)EnumPieceColor.Black] = new Piece(EnumPieceType.King, EnumPieceColor.Black) { RowIdx = 0, ColIdx = 4 };
+        }
+
         private string ExtractMovesFromLoadedPgn(string pgnText)
         {
             // Find the index of the last header closing bracket
@@ -388,9 +496,9 @@ namespace GeminiChessAnalysis.ViewModels
             return movesPart;
         }
 
-        private List<List<Piece>> CreateBoardCellsFromFen(string fenString)
+        private List<ObservableCollection<Piece>> CreateBoardCellsFromFen(string fenString, bool isWhiteAtBottom)
         {
-            List<List<Piece>> ret = new List<List<Piece>>();
+            List<ObservableCollection<Piece>> ret = new List<ObservableCollection<Piece>>();
 
             // Split the FEN string to get the board layout part
             string[] fenParts = fenString.Split(' ');
@@ -399,11 +507,16 @@ namespace GeminiChessAnalysis.ViewModels
             // Split the board layout into ranks
             string[] ranks = boardLayout.Split('/');
 
+            // Determine the starting rank based on isWhiteAtBottom
+            int startRank = isWhiteAtBottom ? 0 : ranks.Length - 1;
+            int rankIncrement = isWhiteAtBottom ? 1 : -1;
+
             // Iterate through each rank
-            for (int row = 0; row < ranks.Length; row++)
+            for (int i = 0; i < ranks.Length; i++)
             {
-                List<Piece> rankPieces = new List<Piece>();
-                string rank = ranks[row];
+                int row = startRank + i * rankIncrement;
+                ObservableCollection<Piece> rankPieces = new ObservableCollection<Piece>();
+                string rank = ranks[i];
                 int col = 0;
 
                 // Iterate through each character in the rank
@@ -413,7 +526,7 @@ namespace GeminiChessAnalysis.ViewModels
                     {
                         // Empty squares
                         int emptySquares = int.Parse(c.ToString());
-                        for (int i = 0; i < emptySquares; i++)
+                        for (int j = 0; j < emptySquares; j++)
                         {
                             rankPieces.Add(null); // Add null for empty squares
                             col++;
@@ -1242,6 +1355,8 @@ namespace GeminiChessAnalysis.ViewModels
                 return;
             }
 
+            // switch to manual move when user move the piece manually
+            _isPgnMove = false;
 
             int currentRow = _currentCell.RowIdx;
             int currentCol = _currentCell.ColIdx;
@@ -1738,7 +1853,7 @@ namespace GeminiChessAnalysis.ViewModels
         /// <remarks>
         /// This method iterates over each row and column of the chess board, and sets the piece at each position to the corresponding piece from the snapshot.
         /// </remarks>
-        private void Restore(int index)
+        private void RestoreFromSnapshot(int index)
         {
             var snapshot = _snapShots[index];
             StringBuilder fenBuilder = new StringBuilder();
@@ -1910,6 +2025,16 @@ namespace GeminiChessAnalysis.ViewModels
             _pawnsSnapshot.Add(CreateSnapShotForPiece(Pawns));
         }
 
+        private void ClearSnapshotsForPieces()
+        {
+            _kingsSnapshot.Clear();
+            _queensSnapshot.Clear();
+            _rooksSnapshot.Clear();
+            _knightsSnapshot.Clear();
+            _bishopsSnapshot.Clear();
+            _pawnsSnapshot.Clear();
+        }
+
         private void RestorePiecesFromSnapshotAt(int index)
         {
             // Ensure the index is within the bounds of the snapshot lists
@@ -1949,7 +2074,7 @@ namespace GeminiChessAnalysis.ViewModels
         /// </remarks>
         /// <param name="src">The source 2D array of pieces to move from.</param>
         /// <param name="dest">The destination 2D array of pieces to move to.</param>
-        void MovePieces(Piece[,] src, Piece[,] dest)
+        private void MovePieces(Piece[,] src, Piece[,] dest)
         {
             int rows = src.GetLength(0); // Number of rows in the 2D array
             int cols = src.GetLength(1); // Number of columns in the 2D array
@@ -1970,6 +2095,41 @@ namespace GeminiChessAnalysis.ViewModels
                 }
             }
         }
+
+        /// <summary>
+        /// Updates the properties of the pieces in the given piece array based on the board representation.
+        /// </summary>
+        /// <remarks>
+        /// This method iterates over each element in the piece array and updates the properties of each piece
+        /// based on the corresponding piece in the board representation.
+        /// </remarks>
+        /// <param name="pieceArray">The array of pieces to update.</param>
+        /// <param name="board">The board representation to use for updating the pieces.</param>
+        private void UpdatePieces(Piece[,] pieceArray, List<ObservableCollection<Piece>> board)
+        {
+            for (int i = 0; i < pieceArray.GetLength(0); i++)
+            {
+                for (int j = 0; j < pieceArray.GetLength(1); j++)
+                {
+                    var piece = pieceArray[i, j];
+                    if (piece != null)
+                    {
+                        var boardPiece = board[piece.RowIdx][piece.ColIdx];
+                        if (boardPiece != null && boardPiece.Type == piece.Type && boardPiece.Color == piece.Color)
+                        {
+                            piece.RowIdx = boardPiece.RowIdx;
+                            piece.ColIdx = boardPiece.ColIdx;
+                            piece.IsAlive = true;
+                        }
+                        else
+                        {
+                            piece.IsAlive = false;
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Flips the given chess piece array to mirror the board's layout, simulating a view from the opposite side.
         /// This method creates a temporary array representing the flipped state of the board, where each piece's
@@ -2013,7 +2173,7 @@ namespace GeminiChessAnalysis.ViewModels
             MovePieces(pieces, flipped);
         }
 
-        void FlipPieceSnapshotArray(Piece[,] pieces)
+        private void FlipPieceSnapshotArray(Piece[,] pieces)
         {
             for (int i = 0; i < pieces.GetLength(0); i++)
             {
@@ -2221,7 +2381,7 @@ namespace GeminiChessAnalysis.ViewModels
             {
                 MoveCount--;
 
-                Restore(MoveCount);
+                RestoreFromSnapshot(MoveCount);
                 IsWhiteTurn = !IsWhiteTurn;
             }
         }
@@ -2232,7 +2392,7 @@ namespace GeminiChessAnalysis.ViewModels
             {
                 MoveCount++;
 
-                Restore(MoveCount);
+                RestoreFromSnapshot(MoveCount);
                 IsWhiteTurn = !IsWhiteTurn;
             }
         }
@@ -2242,57 +2402,50 @@ namespace GeminiChessAnalysis.ViewModels
         /// </summary>
         public void NewBoardSetup()
         {
-            IsWhiteTurn= true;
             // Flip to the original side before starting a new game
             if(_whiteSide == EnumWhiteSide.Top)
             {
                 FlipBoard();
             }
 
-            _whiteSide = EnumWhiteSide.Bottom;
-            Restore(0);
-            _fenString = null;
-            _moveCount = 0;
-            _bestMove = "";
-            _stockfishEvaluationResult = 0.0;
-            _stockfishEvaluation = "";
-            WhiteWinPercentage = 0.0;
-            BlackWinPercentage = 0.0;
-            GeminiStringResult = "";
-            // Remove all moves after the current move from MoveList and SnapShots
-            for (int i = MoveList.Count - 1; i >= _moveCount; i--)
+            Device.BeginInvokeOnMainThread(() =>
             {
-                MoveList.RemoveAt(i);
-                _snapShots.RemoveAt(i + 1);
-                RemoveSnapshotForPiecesAt(i + 1);
-            }
+                RestoreFromSnapshot(0);
+                _fenString = null;
+                _moveCount = 0;
+                _bestMove = "";
+                _stockfishEvaluationResult = 0.0;
+                _stockfishEvaluation = "";
+                WhiteWinPercentage = 0.0;
+                BlackWinPercentage = 0.0;
+                GeminiStringResult = "";
+                // Remove all moves after the current move from MoveList and SnapShots
+                MoveList.Clear();
+                _snapShots.Clear();
+                ClearSnapshotsForPieces();
 
-            bool isWhiteAtBottom = true;
-
-            for (int i = 0; i < BoardCells.Count; i++)
-            {
-                for (int j = 0; j < BoardCells[i].Count; j++)
+                for (int i = 0; i < BoardCells.Count; i++)
                 {
-                    var piece = BoardCells[i][j];
-                    if (isWhiteAtBottom)
+                    for (int j = 0; j < BoardCells[i].Count; j++)
                     {
+                        var piece = BoardCells[i][j];
                         // White at the bottom
                         piece.TopLeftNumber = (j == 0) ? (Size - i).ToString() : "";
                         piece.BottomRightLetter = (i == Size - 1) ? ((char)('a' + j)).ToString() : "";
-                    }
-                    else
-                    {
-                        // White at the top
-                        piece.TopLeftNumber = (j == 0) ? (i + 1).ToString() : "";
-                        piece.BottomRightLetter = (i == Size - 1) ? ((char)('h' - j)).ToString() : "";
-                    }
-                    piece.IsTopLeftNumberVisible = (j == 0);
-                    piece.IsBottomRightLetterVisible = (i == Size - 1);
+                        piece.IsTopLeftNumberVisible = (j == 0);
+                        piece.IsBottomRightLetterVisible = (i == Size - 1);
 
-                    // Update the piece in the ObservableCollection if necessary
-                    BoardCells[i][j] = piece;
+                        // Update the piece in the ObservableCollection if necessary
+                        BoardCells[i][j] = piece;
+                    }
                 }
-            }
+
+                IsWhiteTurn = true;
+
+                _snapShots.Add(CreateSnapshot());
+
+                CreateSnapshotForPieces();
+            });
         }
 
         public static BoardViewModel Instance

@@ -8,33 +8,43 @@
     <!-- Bind chessboard cells to grid positions -->
     <ContentView.Content>
         <StackLayout Orientation="Vertical">
-            <ScrollView Orientation="Horizontal">
-                <customviews:BindableStackLayout Orientation="Horizontal" SelectedIndex="{Binding MoveIndex}" BindableLayout.ItemsSource="{Binding MoveList}" HeightRequest="20">
+
+            <ScrollView x:Name="moveScrollView" Orientation="Horizontal" Grid.Column="0">
+                <customviews:BindableStackLayout 
+                    x:Name="moveStackLayout"
+                    Orientation="Horizontal" 
+                    SelectedIndex="{Binding MoveIndex}" 
+                    BindableLayout.ItemsSource="{Binding MoveList}" 
+                    HeightRequest="20">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate>
-                            <customviews:ClickableLabel Text="{Binding StrMove}" Command="{Binding Path=BindingContext.ReconstructHistoryMoves, Source={x:Reference MyBoardView}}" CommandParameter="{Binding MoveIndex}">
+                            <customviews:ClickableLabel 
+                                Text="{Binding StrMove}" 
+                                Command="{Binding Path=BindingContext.ReconstructHistoryMoves, Source={x:Reference MyBoardView}}" 
+                                CommandParameter="{Binding MoveIndex}"
+                                WidthRequest="50">
                             </customviews:ClickableLabel>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </customviews:BindableStackLayout>
             </ScrollView>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Label Text="Imported Pgn: " Grid.Column="0" VerticalOptions="Center"/>
-                <ScrollView Orientation="Horizontal" Grid.Column="1" HorizontalOptions="FillAndExpand">
-                    <customviews:BindableStackLayout Orientation="Horizontal" BindableLayout.ItemsSource="{Binding PgnMoveList}" HeightRequest="20">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate>
-                                <customviews:ClickableLabel Text="{Binding StrMove}" Command="{Binding Path=BindingContext.ReconstructHistoryMoves, Source={x:Reference MyBoardView}}" CommandParameter="{Binding MoveIndex}">
-                                </customviews:ClickableLabel>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </customviews:BindableStackLayout>
-                </ScrollView>
-            </Grid>
+            <ScrollView Orientation="Horizontal" Grid.Column="1" VerticalOptions="FillAndExpand">
+                <customviews:BindableStackLayout Orientation="Horizontal" SelectedIndex="{Binding MoveIndexSub}" BindableLayout.ItemsSource="{Binding MoveListSub}" HeightRequest="20">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <customviews:ClickableLabel 
+                                Text="{Binding StrMove}" 
+                                Command="{Binding Path=BindingContext.ReconstructHistorySubMoves, Source={x:Reference MyBoardView}}" 
+                                CommandParameter="{Binding MoveIndex}"
+                                IsVisibleAndClickable="{Binding IsVisibleAndClickable}"
+                                WidthRequest="50"
+                                >
+                            </customviews:ClickableLabel>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </customviews:BindableStackLayout>
+            </ScrollView>
+
             <AbsoluteLayout x:Name="BoardViewAbsoluteLayout" >
 
             </AbsoluteLayout>

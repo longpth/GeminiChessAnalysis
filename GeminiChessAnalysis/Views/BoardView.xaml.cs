@@ -1,5 +1,8 @@
 ﻿using GeminiChessAnalysis.Models;
 using GeminiChessAnalysis.ViewModels;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 
@@ -13,6 +16,7 @@ namespace GeminiChessAnalysis.Views
             InitializeComponent();
             this.BindingContext = BoardViewModel.Instance;
             InitializeChessBoardGUI();
+            BoardViewModel.Instance.ScrollToLatestItem += BoardViewModel_ScrollToLatestMoveItem;
         }
         private void InitializeChessBoardGUI()
         {
@@ -126,6 +130,18 @@ namespace GeminiChessAnalysis.Views
                     // Optionally, bring the newly added piece view to the front if needed
                     BoardViewAbsoluteLayout.RaiseChild(pieceView);
                 }
+            }
+        }
+
+        private async void BoardViewModel_ScrollToLatestMoveItem(object sender, EventArgs e)
+        {
+            await Task.Delay(50); // Delay to ensure layout updates
+
+            // Scroll to the latest item in the stack layout
+            var latestItem = moveStackLayout.Children.LastOrDefault();
+            if (latestItem != null)
+            {
+                await moveScrollView.ScrollToAsync(latestItem, ScrollToPosition.End, true);
             }
         }
 

@@ -29,6 +29,7 @@ namespace GeminiChessAnalysis.ViewModels
     {
         public string StrMove { get; set; }
         public int MoveIndex { get; set; }
+        public bool IsVisibleAndClickable { get; set; } = false;
     }
 
     public class BoardViewModel : BaseViewModel
@@ -58,7 +59,15 @@ namespace GeminiChessAnalysis.ViewModels
         private List<Piece[,]> _bishopsSnapshot   = new List<Piece[,]>();
         private List<Piece[,]> _pawnsSnapshot     = new List<Piece[,]>();
 
+        private List<Piece[,]> _kingsSnapshotSub = new List<Piece[,]>();
+        private List<Piece[,]> _queensSnapshotSub = new List<Piece[,]>();
+        private List<Piece[,]> _rooksSnapshotSub = new List<Piece[,]>();
+        private List<Piece[,]> _knightsSnapshotSub = new List<Piece[,]>();
+        private List<Piece[,]> _bishopsSnapshotSub = new List<Piece[,]>();
+        private List<Piece[,]> _pawnsSnapshotSub = new List<Piece[,]>();
+
         private List<List<ObservableCollection<Piece>>> _snapShots = new List<List<ObservableCollection<Piece>>>();
+        private Dictionary<int, List<ObservableCollection<Piece>>> _snapShotSubs = new Dictionary<int, List<ObservableCollection<Piece>>>();
         private IStockfish _stockfish = new StockfishWrapper();
         private int _animateTime = 200;
         private static BoardViewModel _instance;
@@ -66,7 +75,9 @@ namespace GeminiChessAnalysis.ViewModels
         private bool _bestMoveAvailable = false;
         private string _question_for_gemnini = "";
         private ChessGame _chessGame;
-        private bool _isPgnMove = false;
+        private bool _isLoadedPgnMove = false;
+        private bool _isBranching = false;
+        private int _branchingMoveAtCount = 0;
         #endregion
 
         #region Properties
@@ -101,15 +112,32 @@ namespace GeminiChessAnalysis.ViewModels
             set
             {
                 _moveCount = value;
-                MoveIndex = value - 1;
+                
+                if(_moveCount <= _branchingMoveAtCount)
+                {
+                    _isBranching = false;
+                }
+
+                if (_isBranching)
+                {
+                    MoveIndex = -1;
+                    MoveIndexSub = value - 1;
+                }
+                else
+                {
+                    MoveIndex = value - 1;
+                    MoveIndexSub = -1;
+                }
                 OnPropertyChanged(nameof(MoveCount));
                 OnPropertyChanged(nameof(MoveIndex));
+                OnPropertyChanged(nameof(MoveIndexSub));
                 _isNewMove = true;
                 Others.PlayAudioFile("move_sound.mp3");
             }
         }
 
         public int MoveIndex { get; set; }
+        public int MoveIndexSub { get; set; }
 
         private string _fenString; // Field to store the FEN string
         public string FenString
@@ -248,7 +276,49 @@ namespace GeminiChessAnalysis.ViewModels
             get { return _pawns; }
             set { _pawns = value; }
         }
+        private ObservableCollection<MoveItem> _moveList = new ObservableCollection<MoveItem>();
+        public ObservableCollection<MoveItem> MoveList
+        {
+            get => _moveList;
+            set
+            {
+                if (_moveList != value)
+                {
+                    _moveList = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
+        private ObservableCollection<MoveItem> _moveListSub = new ObservableCollection<MoveItem>();
+        public ObservableCollection<MoveItem> MoveListSub
+        {
+            get => _moveListSub;
+            set
+            {
+                if (_moveListSub != value)
+                {
+                    _moveListSub = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private ObservableCollection<MoveItem> _pgnmoveList = new ObservableCollection<MoveItem>();
+        public ObservableCollection<MoveItem> PgnMoveList
+        {
+            get => _pgnmoveList;
+            set
+            {
+                if (_pgnmoveList != value)
+                {
+                    _pgnmoveList = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public event EventHandler ScrollToLatestItem;
         #endregion
 
         #region Constructor
@@ -314,12 +384,27 @@ namespace GeminiChessAnalysis.ViewModels
             });
 
             MessageService.Instance.Subscribe(ProcessPgnImportText);
+
+            MoveList.CollectionChanged += MoveList_CollectionChanged;
         }
+
+        #endregion
+
+        #region Private Method
+        private void MoveList_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                // Notify the view to scroll to the new item
+                ScrollToLatestItem?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         private void ProcessPgnImportText(string pgnText)
         {
             string moveParts = ExtractMovesFromLoadedPgn(pgnText);
 
-            moveParts = moveParts.Replace("\n", " ").Replace("+","");
+            moveParts = moveParts.Replace("\n", " ").Replace("+", "");
 
             Debug.WriteLine($"Received PGN text: {moveParts}");
 
@@ -329,59 +414,63 @@ namespace GeminiChessAnalysis.ViewModels
             // Reset the Board First
             NewBoardSetup();
 
-            // Initialize the move index
-            int moveIndex = 0;
-
-            // Iterate through the moves and create MoveItem objects
-            foreach (var move in moves)
+            Device.BeginInvokeOnMainThread(() =>
             {
-                // Skip move numbers (e.g., "1.", "2.", etc.)
-                if (move.Contains("."))
+                // Initialize the move index
+                int moveIndex = 0;
+
+                // Iterate through the moves and create MoveItem objects
+                foreach (var move in moves)
                 {
-                    continue;
+                    // Skip move numbers (e.g., "1.", "2.", etc.)
+                    if (move.Contains("."))
+                    {
+                        continue;
+                    }
+
+                    // Create a new MoveItem
+                    var moveItem = new MoveItem
+                    {
+                        StrMove = move,
+                        MoveIndex = moveIndex
+                    };
+
+                    moveItem.StrMove = moveIndex % 2 == 0 ? $"{moveItem.MoveIndex + 1}. {moveItem.StrMove}" : moveItem.StrMove;
+
+                    // Add the MoveItem to the PgnMoveList
+                    PgnMoveList.Add(moveItem);
+
+                    // Clone the MoveItem for MoveList
+                    var clonedMoveItem = new MoveItem
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex
+                    };
+
+                    // Add the cloned MoveItem to the MoveList
+                    MoveList.Add(clonedMoveItem);
+
+                    // Increment the move index
+                    moveIndex++;
                 }
 
-                // Create a new MoveItem
-                var moveItem = new MoveItem
-                {
-                    StrMove = move,
-                    MoveIndex = moveIndex
-                };
+                _chessGame = new ChessGame();
+                _chessGame.ApplyMovesFromPGN(moveParts);
 
-                moveItem.StrMove = moveIndex % 2 == 0 ? $"{moveItem.MoveIndex + 1}. {moveItem.StrMove}" : moveItem.StrMove;
+                //var prevfen = _chessGame.FENList[0];
 
-                // Add the MoveItem to the PgnMoveList
-                PgnMoveList.Add(moveItem);
+                //foreach (var fen in _chessGame.FENList)
+                //{
+                //    _snapShots.Add(CreateBoardCellsFromFen(fen, _whiteSide == EnumWhiteSide.Bottom));
+                //    UpdatePiecesFromFens(prevfen, fen, _whiteSide == EnumWhiteSide.Bottom);
+                //    CreateSnapshotForPieces();
+                //    prevfen = fen;
+                //}
 
-                // Clone the MoveItem for MoveList
-                var clonedMoveItem = new MoveItem
-                {
-                    StrMove = moveItem.StrMove,
-                    MoveIndex = moveItem.MoveIndex
-                };
+                // switch to loaded pgn move, instead of moving manually by user
+                _isLoadedPgnMove = true;
+            });
 
-                // Add the cloned MoveItem to the MoveList
-                MoveList.Add(clonedMoveItem);
-
-                // Increment the move index
-                moveIndex++;
-            }
-
-            _chessGame = new ChessGame();
-            _chessGame.ApplyMovesFromPGN(moveParts);
-
-            var prevfen = _chessGame.FENList[0];
-
-            foreach (var fen in _chessGame.FENList)
-            {
-                _snapShots.Add(CreateBoardCellsFromFen(fen, _whiteSide==EnumWhiteSide.Bottom));
-                UpdatePiecesFromFens(prevfen, fen, _whiteSide == EnumWhiteSide.Bottom);
-                CreateSnapshotForPieces();
-                prevfen = fen;
-            }
-
-            // switch to loaded pgn move, instead of moving manually by user
-            _isPgnMove = true;
         }
 
         private void UpdatePiecesFromFens(string initialFen, string currentFen, bool isWhiteAtBottom)
@@ -585,37 +674,6 @@ namespace GeminiChessAnalysis.ViewModels
             }).Start();
         }
 
-        private ObservableCollection<MoveItem> _moveList = new ObservableCollection<MoveItem>();
-        public ObservableCollection<MoveItem> MoveList
-        {
-            get => _moveList;
-            set
-            {
-                if (_moveList != value)
-                {
-                    _moveList = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        private ObservableCollection<MoveItem> _pgnmoveList = new ObservableCollection<MoveItem>();
-        public ObservableCollection<MoveItem> PgnMoveList
-        {
-            get => _pgnmoveList;
-            set
-            {
-                if (_pgnmoveList != value)
-                {
-                    _pgnmoveList = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        #endregion
-
-        #region Private Method
         private void SwapPieces(Piece src, Piece dest)
         {
             // Save the source piece's position
@@ -1347,6 +1405,7 @@ namespace GeminiChessAnalysis.ViewModels
             return ret;
         }
 
+        // Move the piece by touching the piece
         private void MoveCurrentPieceTo(int row, int col, bool updateHistory = true)
         {
             if (ChessPiecesForDisplaying[row][col].CircleVisible == false && updateHistory == true)
@@ -1354,9 +1413,6 @@ namespace GeminiChessAnalysis.ViewModels
                 MoveIsValid = false;
                 return;
             }
-
-            // switch to manual move when user move the piece manually
-            _isPgnMove = false;
 
             int currentRow = _currentCell.RowIdx;
             int currentCol = _currentCell.ColIdx;
@@ -1411,23 +1467,61 @@ namespace GeminiChessAnalysis.ViewModels
                 }
 
                 // Add number to label if this is white's move
-                moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2+1}. {moveItem.StrMove}" : moveItem.StrMove;
+                moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2+1}.{moveItem.StrMove}" : moveItem.StrMove;
 
-                if (MoveCount < MoveList.Count)
+                if (_isBranching)
                 {
-                    // Remove all moves after the current move from MoveList and SnapShots
-                    for (int i = MoveList.Count - 1; i >= MoveCount; i--)
+                    // the move is in the sub-branch
+                    if(MoveCount < MoveListSub.Count)
                     {
-                        MoveList.RemoveAt(i);
-                        _snapShots.RemoveAt(i+1);
-                        RemoveSnapshotForPiecesAt(i+1);
+                        MoveListSub[MoveCount] = new MoveItem()
+                        {
+                            StrMove = moveItem.StrMove,
+                            MoveIndex = moveItem.MoveIndex,
+                            IsVisibleAndClickable = true
+                        };
+                        _snapShotSubs[MoveCount] = CreateSnapshot();
+                    } 
+                    else
+                    {
+                        MoveListSub.Add(new MoveItem()
+                        {
+                            StrMove = moveItem.StrMove,
+                            MoveIndex = moveItem.MoveIndex,
+                            IsVisibleAndClickable = true
+                        });
+                        _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                        CreateSnapshotForPieces();
                     }
                 }
+                else if (MoveCount < MoveList.Count && moveItem.StrMove != MoveList[MoveCount].StrMove)
+                {
+                    _isBranching = true;
+                    _branchingMoveAtCount = MoveCount;
+                    // this is a sub-branch move
+                    if (moveItem.StrMove != MoveListSub[MoveCount].StrMove)
+                    {
+                        MoveListSub[MoveCount] = new MoveItem()
+                        {
+                            StrMove = moveItem.StrMove,
+                            MoveIndex = moveItem.MoveIndex,
+                            IsVisibleAndClickable = true
+                        };
+                        _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                    }
+                }
+                else
+                {
+                    MoveList.Add(moveItem);
+                    MoveListSub.Add(new MoveItem()
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex
+                    });
 
-                MoveList.Add(moveItem);
-
-                _snapShots.Add(CreateSnapshot());
-                CreateSnapshotForPieces();
+                    _snapShots.Add(CreateSnapshot());
+                    CreateSnapshotForPieces();
+                }
             }
 
             MoveIsValid = true;
@@ -1855,7 +1949,7 @@ namespace GeminiChessAnalysis.ViewModels
         /// </remarks>
         private void RestoreFromSnapshot(int index)
         {
-            var snapshot = _snapShots[index];
+            var snapshot = (index >= _branchingMoveAtCount) && _isBranching ? _snapShotSubs[index] : _snapShots[index];
             StringBuilder fenBuilder = new StringBuilder();
             int emptySquares = 0;
 
@@ -1991,16 +2085,6 @@ namespace GeminiChessAnalysis.ViewModels
             }
         }
 
-        private void RemoveSnapshotForPiecesAt(int index)
-        {
-            _kingsSnapshot.RemoveAt(index);
-            _queensSnapshot.RemoveAt(index);
-            _rooksSnapshot.RemoveAt(index);
-            _knightsSnapshot.RemoveAt(index);
-            _bishopsSnapshot.RemoveAt(index);
-            _pawnsSnapshot.RemoveAt(index);
-        }
-
         private Piece[,] CreateSnapShotForPiece(Piece[,] pieces)
         {
             var snapshot = new Piece[pieces.GetLength(0), pieces.GetLength(1)];
@@ -2017,12 +2101,24 @@ namespace GeminiChessAnalysis.ViewModels
 
         private void CreateSnapshotForPieces()
         {
-            _kingsSnapshot.Add(CreateSnapShotForPiece(Kings));
-            _queensSnapshot.Add(CreateSnapShotForPiece(Queens));
-            _rooksSnapshot.Add(CreateSnapShotForPiece(Rooks));
-            _knightsSnapshot.Add(CreateSnapShotForPiece(Knights));
-            _bishopsSnapshot.Add(CreateSnapShotForPiece(Bishops));
-            _pawnsSnapshot.Add(CreateSnapShotForPiece(Pawns));
+            if (_isBranching)
+            {
+                _kingsSnapshotSub.Add(CreateSnapShotForPiece(Kings));
+                _queensSnapshotSub.Add(CreateSnapShotForPiece(Queens));
+                _rooksSnapshotSub.Add(CreateSnapShotForPiece(Rooks));
+                _knightsSnapshotSub.Add(CreateSnapShotForPiece(Knights));
+                _bishopsSnapshotSub.Add(CreateSnapShotForPiece(Bishops));
+                _pawnsSnapshotSub.Add(CreateSnapShotForPiece(Pawns));
+            }
+            else
+            {
+                _kingsSnapshot.Add(CreateSnapShotForPiece(Kings));
+                _queensSnapshot.Add(CreateSnapShotForPiece(Queens));
+                _rooksSnapshot.Add(CreateSnapShotForPiece(Rooks));
+                _knightsSnapshot.Add(CreateSnapShotForPiece(Knights));
+                _bishopsSnapshot.Add(CreateSnapShotForPiece(Bishops));
+                _pawnsSnapshot.Add(CreateSnapShotForPiece(Pawns));
+            }
         }
 
         private void ClearSnapshotsForPieces()
@@ -2033,14 +2129,28 @@ namespace GeminiChessAnalysis.ViewModels
             _knightsSnapshot.Clear();
             _bishopsSnapshot.Clear();
             _pawnsSnapshot.Clear();
+
+            _kingsSnapshotSub.Clear();
+            _queensSnapshotSub.Clear();
+            _rooksSnapshotSub.Clear();
+            _knightsSnapshotSub.Clear();
+            _bishopsSnapshotSub.Clear();
+            _pawnsSnapshotSub.Clear();
         }
 
         private void RestorePiecesFromSnapshotAt(int index)
         {
+            var kingsSnapshot = _isBranching ? _kingsSnapshotSub : _kingsSnapshot;
+            var queensSnapshot = _isBranching ? _queensSnapshotSub : _queensSnapshot;
+            var rooksSnapshot = _isBranching ? _rooksSnapshotSub : _rooksSnapshot;
+            var bishopsSnapshot = _isBranching ? _bishopsSnapshotSub : _bishopsSnapshot;
+            var knightsSnapshot = _isBranching ? _knightsSnapshotSub : _knightsSnapshot;
+            var pawnsSnapshot = _isBranching ? _pawnsSnapshotSub : _pawnsSnapshot;
+
             // Ensure the index is within the bounds of the snapshot lists
-            if (index < 0 || index >= _kingsSnapshot.Count || index >= _queensSnapshot.Count ||
-                index >= _rooksSnapshot.Count || index >= _knightsSnapshot.Count ||
-                index >= _bishopsSnapshot.Count || index >= _pawnsSnapshot.Count)
+            if (index < 0 || index >= kingsSnapshot.Count || index >= queensSnapshot.Count ||
+                index >= rooksSnapshot.Count || index >= knightsSnapshot.Count ||
+                index >= bishopsSnapshot.Count || index >= pawnsSnapshot.Count)
             {
                 Debug.WriteLine("Index out of range for restoring snapshots.");
                 return;
@@ -2049,12 +2159,12 @@ namespace GeminiChessAnalysis.ViewModels
             _animateTime = 200;
 
             // Restore the state of each piece array from its snapshot
-            MovePieces(_kings, _kingsSnapshot[index]);
-            MovePieces(_queens, _queensSnapshot[index]);
-            MovePieces(_rooks, _rooksSnapshot[index]);
-            MovePieces(_knights, _knightsSnapshot[index]);
-            MovePieces(_bishops, _bishopsSnapshot[index]);
-            MovePieces(_pawns, _pawnsSnapshot[index]);
+            MovePieces(_kings, kingsSnapshot[index]);
+            MovePieces(_queens, queensSnapshot[index]);
+            MovePieces(_rooks, rooksSnapshot[index]);
+            MovePieces(_knights, knightsSnapshot[index]);
+            MovePieces(_bishops, bishopsSnapshot[index]);
+            MovePieces(_pawns, pawnsSnapshot[index]);
         }
 
         /// <summary>
@@ -2196,6 +2306,13 @@ namespace GeminiChessAnalysis.ViewModels
                 FlipPieceSnapshotArray(_queensSnapshot[i]);
                 FlipPieceSnapshotArray(_kingsSnapshot[i]);
 
+                FlipPieceSnapshotArray(_pawnsSnapshotSub[i]);
+                FlipPieceSnapshotArray(_rooksSnapshotSub[i]);
+                FlipPieceSnapshotArray(_knightsSnapshotSub[i]);
+                FlipPieceSnapshotArray(_bishopsSnapshotSub[i]);
+                FlipPieceSnapshotArray(_queensSnapshotSub[i]);
+                FlipPieceSnapshotArray(_kingsSnapshotSub[i]);
+
                 for (int j = 0; j < Size; j++)
                 {
                     for(int k=0; k<Size; k++)
@@ -2212,6 +2329,32 @@ namespace GeminiChessAnalysis.ViewModels
         public ICommand AskStockFishCommand { get; private set; }
         public ICommand AskGoogleGeminiCommand { get; private set; }
         public ICommand ReconstructHistoryMoves => new Command<int>(index =>
+        {
+            Debug.WriteLine($"History move label {index} was clicked");
+            Device.StartTimer(TimeSpan.FromMilliseconds(10), () =>
+            {
+                bool ret = true;
+                // Code to execute on each tick
+                if (MoveCount == index + 1)
+                {
+                    ret = false;
+                }
+                else
+                {
+                    if (MoveCount < index + 1)
+                    {
+                        NextMove();
+                    }
+                    else
+                    {
+                        PreviousMove();
+                    }
+                }
+                // Return true to keep the timer running, false to stop it
+                return ret;
+            });
+        });
+        public ICommand ReconstructHistorySubMoves => new Command<int>(index =>
         {
             Debug.WriteLine($"History move label {index} was clicked");
             // Add more code here to handle the label click
@@ -2388,7 +2531,9 @@ namespace GeminiChessAnalysis.ViewModels
 
         public void NextMove()
         {
-            if (MoveCount < _snapShots.Count - 1)
+            int limitCounter = _isBranching ? _branchingMoveAtCount + _snapShotSubs.Count - 1 : _snapShots.Count - 1;
+
+            if (MoveCount < limitCounter)
             {
                 MoveCount++;
 
@@ -2412,10 +2557,10 @@ namespace GeminiChessAnalysis.ViewModels
             {
                 RestoreFromSnapshot(0);
                 _fenString = null;
-                _moveCount = 0;
                 _bestMove = "";
                 _stockfishEvaluationResult = 0.0;
                 _stockfishEvaluation = "";
+                MoveCount = 0;
                 WhiteWinPercentage = 0.0;
                 BlackWinPercentage = 0.0;
                 GeminiStringResult = "";

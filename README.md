@@ -12,8 +12,6 @@ GeminiChessAnalysis is a Xamarin.Forms application designed to enhance chess gam
 
 GeminiChessAnalysis relies on several external libraries and services:
 
-GeminiChessAnalysis relies on several external libraries and services:
-
 - **[Google Gemini API](https://ai.google.dev/gemini-api/docs/api-key?_gl=1*o4ctee*_up*MQ..&gclid=CjwKCAjwkJm0BhBxEiwAwT1AXEfQ0c5BQKAGt9Dpi7pfbCwEQbTkt__TiEfG6nGyTevezueKfnA3qxoCFicQAvD_BwE):** Utilized for fetching detailed chess explanations, enhancing the learning and analysis experience. This API provides insights into chess moves and strategies, making it easier for users to understand and improve their gameplay.
 - **[Stockfish 16.1](https://github.com/official-stockfish/Stockfish):** A powerful open-source chess engine used for game analysis and move suggestions.
 - **[Newtonsoft.Json (13.0.3)](https://www.nuget.org/packages/Newtonsoft.Json/13.0.3):** A popular high-performance JSON framework for .NET, used for data serialization and deserialization.

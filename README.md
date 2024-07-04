@@ -41,4 +41,4 @@ Contributions to GeminiChessAnalysis are welcome! Please feel free to submit pul
 
 ## License
 
-GeminiChessAnalysis is released under the [GPLv3).
+GeminiChessAnalysis is released under the GPLv3.

@@ -119,7 +119,7 @@ namespace GeminiChessAnalysis.Models
 
         public string PgnType { get; set; }
         public string PgnPostion { get; set; }
-        private string ConvertToPGN(int rowIndex, int colIndex, bool isWhiteAtBottom)
+        public static string ConvertToPGN(int rowIndex, int colIndex, bool isWhiteAtBottom)
         {
             char column;
             char row;

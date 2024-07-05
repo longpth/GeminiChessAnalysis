@@ -73,11 +73,14 @@ namespace GeminiChessAnalysis.ViewModels
         private static BoardViewModel _instance;
         private bool _isNewMove = false;
         private bool _bestMoveAvailable = false;
+        private bool _bestMoveValidForGemini = false;
         private string _question_for_gemnini = "";
         private ChessGame _chessGame;
         private bool _isLoadedPgnMove = false;
         private bool _isBranching = false;
         private int _branchingMoveAtCount = 0;
+        private Piece _bestChessPieceSrc;
+        private Piece _bestChessPieceDst;
         #endregion
 
         #region Properties
@@ -182,23 +185,28 @@ namespace GeminiChessAnalysis.ViewModels
                     List<Point> movePoints = PiecesMoveRecord.ConvertStringToPieceIndexes(_bestMove, _whiteSide == EnumWhiteSide.Bottom);
                     // Get chess piece at the start position
                     // Update best move with correct turn and piece source color
-                    var chessPieceSrc = GetChessPiece((int)movePoints[0].Y, (int)movePoints[0].X);
-                    var chessPieceDst = GetChessPiece((int)movePoints[1].Y, (int)movePoints[1].X);
-                    if ((chessPieceSrc.Color == EnumPieceColor.White && IsWhiteTurn == false) ||
-                        (chessPieceSrc.Color == EnumPieceColor.Black && IsWhiteTurn == true))
+                    _bestChessPieceSrc = GetChessPiece((int)movePoints[0].Y, (int)movePoints[0].X);
+                    _bestChessPieceDst = GetChessPiece((int)movePoints[1].Y, (int)movePoints[1].X);
+                    if ((_bestChessPieceSrc.Color == EnumPieceColor.White && IsWhiteTurn == false) ||
+                        (_bestChessPieceSrc.Color == EnumPieceColor.Black && IsWhiteTurn == true))
                     {
                         _bestMove = previousMove;
                         // all piece CellWith is the same, so we can use any piece to get the width
                         movePoints = PiecesMoveRecord.ConvertStringToPieceIndexes(_bestMove, _whiteSide == EnumWhiteSide.Bottom);
-                        chessPieceSrc = GetChessPiece((int)movePoints[0].Y, (int)movePoints[0].X);
-                        chessPieceDst = GetChessPiece((int)movePoints[1].Y, (int)movePoints[1].X);
+                        _bestChessPieceSrc = GetChessPiece((int)movePoints[0].Y, (int)movePoints[0].X);
+                        _bestChessPieceDst = GetChessPiece((int)movePoints[1].Y, (int)movePoints[1].X);
                     }
 
-                    BestMoveArrowViewModel.ArrowStartX = chessPieceSrc.Center.X;
-                    BestMoveArrowViewModel.ArrowStartY = chessPieceSrc.Center.Y;
-                    BestMoveArrowViewModel.ArrowEndX = chessPieceDst.Center.X;
-                    BestMoveArrowViewModel.ArrowEndY = chessPieceDst.Center.Y;
+                    BestMoveArrowViewModel.ArrowStartX = _bestChessPieceSrc.Center.X;
+                    BestMoveArrowViewModel.ArrowStartY = _bestChessPieceSrc.Center.Y;
+                    BestMoveArrowViewModel.ArrowEndX = _bestChessPieceDst.Center.X;
+                    BestMoveArrowViewModel.ArrowEndY = _bestChessPieceDst.Center.Y;
                     BestMoveArrowViewModel.ArrowVisible = true;
+
+                    if (_bestMove != previousMove)
+                    {
+                        _bestMoveValidForGemini = true;
+                    }
 
                     OnPropertyChanged(nameof(BestMoveArrowViewModel));
                 }
@@ -390,12 +398,16 @@ namespace GeminiChessAnalysis.ViewModels
 
             Device.StartTimer(TimeSpan.FromMilliseconds(500), () =>
             {
-                if (_bestMoveAvailable)
+                if (_bestMoveValidForGemini)
                 {
                     _bestMoveAvailable = false;
+                    _bestMoveValidForGemini = false;
+                    string bestChessPieceName = PiecesMoveRecord.PieceType2StringFullName(_bestChessPieceSrc.Type);
+                    string besChessPieceColor = (_bestChessPieceSrc.Color == EnumPieceColor.White) ? "White" : "Black";
+                    string destPos = PiecesMoveRecord.ConvertToPGN(_bestChessPieceDst.RowIdx, _bestChessPieceDst.ColIdx, _whiteSide == EnumWhiteSide.Bottom);
                     string question2Gemini_prefix = "Let say, I have a chess board with the following pieces: \n";
                     string question2Gemini_boardInfo = AllPositionInString() + "\n";
-                    string question2Gemini_suffix = $"And stockfish say that, the evaluation of current position is {_stockfishEvaluationResult} (white side), tell me about this evaluation in less than 150 words";
+                    string question2Gemini_suffix = $"And stockfish say that, the evaluation of current position is {_stockfishEvaluationResult} (white side), and the best move is move {besChessPieceColor} {bestChessPieceName} to {destPos},  tell me about this evaluation in less than 150 words";
                     _question_for_gemnini = question2Gemini_prefix + question2Gemini_boardInfo + question2Gemini_suffix;
                     if (AskGoogleGeminiCommand.CanExecute(null))
                     {
@@ -1374,7 +1386,7 @@ namespace GeminiChessAnalysis.ViewModels
             EnumKingOrQueenSide ret = EnumKingOrQueenSide.None;
             if (_currentCell.Type == EnumPieceType.King)
             {
-                if (_currentCell.Color == EnumPieceColor.White)
+                if (_currentCell.Color == EnumPieceColor.White && _kings[0, (int)EnumPieceColor.White].HasNotMoved)
                 {
                     if (row == _kings[0,(int)EnumPieceColor.White].RowIdx && col == 6)
                     {
@@ -1397,7 +1409,7 @@ namespace GeminiChessAnalysis.ViewModels
                         ret = EnumKingOrQueenSide.QueenSide;
                     }
                 }
-                else
+                else if(_kings[0, (int)EnumPieceColor.Black].HasNotMoved)
                 {
                     if (row == 0 && col == 6)
                     {
@@ -2100,6 +2112,7 @@ namespace GeminiChessAnalysis.ViewModels
                     GeminiStringResult = result;
                     // Display the result in a label or any other UI element
                     Debug.WriteLine(result);
+                    _question_for_gemnini = "";
                 }
                 catch (Exception ex)
                 {

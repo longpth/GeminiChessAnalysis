@@ -181,13 +181,26 @@ namespace GeminiChessAnalysis.ViewModels
 
                     List<Point> movePoints = PiecesMoveRecord.ConvertStringToPieceIndexes(_bestMove, _whiteSide == EnumWhiteSide.Bottom);
                     // Get chess piece at the start position
+                    // Update best move with correct turn and piece source color
                     var chessPieceSrc = GetChessPiece((int)movePoints[0].Y, (int)movePoints[0].X);
                     var chessPieceDst = GetChessPiece((int)movePoints[1].Y, (int)movePoints[1].X);
                     if ((chessPieceSrc.Color == EnumPieceColor.White && IsWhiteTurn == false) ||
                         (chessPieceSrc.Color == EnumPieceColor.Black && IsWhiteTurn == true))
                     {
                         _bestMove = previousMove;
+                        // all piece CellWith is the same, so we can use any piece to get the width
+                        movePoints = PiecesMoveRecord.ConvertStringToPieceIndexes(_bestMove, _whiteSide == EnumWhiteSide.Bottom);
+                        chessPieceSrc = GetChessPiece((int)movePoints[0].Y, (int)movePoints[0].X);
+                        chessPieceDst = GetChessPiece((int)movePoints[1].Y, (int)movePoints[1].X);
                     }
+
+                    BestMoveArrowViewModel.ArrowStartX = chessPieceSrc.Center.X;
+                    BestMoveArrowViewModel.ArrowStartY = chessPieceSrc.Center.Y;
+                    BestMoveArrowViewModel.ArrowEndX = chessPieceDst.Center.X;
+                    BestMoveArrowViewModel.ArrowEndY = chessPieceDst.Center.Y;
+                    BestMoveArrowViewModel.ArrowVisible = true;
+
+                    OnPropertyChanged(nameof(BestMoveArrowViewModel));
                 }
             }
         }
@@ -319,6 +332,17 @@ namespace GeminiChessAnalysis.ViewModels
         }
 
         public event EventHandler ScrollToLatestItem;
+
+        private ArrowViewModel _bestMoveArrowViewModel = new ArrowViewModel();
+        public ArrowViewModel BestMoveArrowViewModel
+        {
+            get => _bestMoveArrowViewModel;
+            set
+            {
+                _bestMoveArrowViewModel = value;
+                OnPropertyChanged(nameof(BestMoveArrowViewModel));
+            }
+        }
         #endregion
 
         #region Constructor
@@ -1215,7 +1239,7 @@ namespace GeminiChessAnalysis.ViewModels
                     pieceCollection = _kings;
                     break;
                 default:
-                    pieceRet = new Piece();
+                    pieceRet = new Piece() { ColIdx = cell.ColIdx, RowIdx = cell.RowIdx };
                     break;
             }
 

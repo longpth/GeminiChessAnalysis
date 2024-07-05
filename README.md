@@ -16,6 +16,8 @@ GeminiChessAnalysis relies on several external libraries and services:
 - **[Stockfish 16.1](https://github.com/official-stockfish/Stockfish):** A powerful open-source chess engine used for game analysis and move suggestions.
 - **[Newtonsoft.Json (13.0.3)](https://www.nuget.org/packages/Newtonsoft.Json/13.0.3):** A popular high-performance JSON framework for .NET, used for data serialization and deserialization.
 - **[Xam.Plugin.SimpleAudioPlayer (1.6.0)](https://www.nuget.org/packages/Xam.Plugin.SimpleAudioPlayer/1.6.0):** A simple audio player plugin for Xamarin applications, used for playing audio feedback.
+- **[SkiaSharp (2.88.8)](https://www.nuget.org/packages/SkiaSharp/2.88.8):** SkiaSharp is a cross-platform 2D graphics API for .NET platforms based on Google's Skia Graphics Library. It provides a comprehensive 2D API that can be used across mobile, server and desktop models to render images.
+- Chess piece images are taken from https://github.com/lichess-org/lila
 
 ## Installation
 

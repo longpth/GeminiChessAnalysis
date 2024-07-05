@@ -2,9 +2,17 @@
 <ContentView xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
              xmlns:customviews="clr-namespace:GeminiChessAnalysis.CustomItems"
+             xmlns:skia="clr-namespace:SkiaSharp.Views.Forms;assembly=SkiaSharp.Views.Forms"
              x:Class="GeminiChessAnalysis.Views.BoardView"
              BackgroundColor="LightSkyBlue"
              x:Name="MyBoardView">
+    <!--<ContentView.Resources>
+        <ResourceDictionary>
+            <converters:ArrowPositionConverter x:Key="ArrowPositionConverter"/>
+            <converters:ArrowRotationConverter x:Key="ArrowRotationConverter"/>
+            <converters:ArrowHeadPathConverter x:Key="ArrowHeadPathConverter"/>
+        </ResourceDictionary>
+    </ContentView.Resources>-->
     <!-- Bind chessboard cells to grid positions -->
     <ContentView.Content>
         <StackLayout Orientation="Vertical">

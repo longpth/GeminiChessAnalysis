@@ -1,7 +1,7 @@
 ﻿using GeminiChessAnalysis.ViewModels;
 using System;
 using System.Collections.Generic;
-using Xamarin.Forms;
+using Point = Xamarin.Forms.Point;
 
 namespace GeminiChessAnalysis.Models
 {
@@ -161,6 +161,5 @@ namespace GeminiChessAnalysis.Models
             // Return as a list of Points
             return new List<Point> { startPoint, endPoint };
         }
-
     }
 }

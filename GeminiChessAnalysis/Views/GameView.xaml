@@ -20,7 +20,7 @@
         <!-- Controls for managing the game -->
         <Grid HorizontalOptions="FillAndExpand">
             <Grid.RowDefinitions>
-                <RowDefinition Height="20
+                <RowDefinition Height="30
                                " />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>

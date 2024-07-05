@@ -5,18 +5,38 @@ using System.Threading.Tasks;
 using System;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
+using SkiaSharp;
+using SkiaSharp.Views.Forms;
+using Point = Xamarin.Forms.Point;
+using Color = Xamarin.Forms.Color;
+using System.ComponentModel;
 
 namespace GeminiChessAnalysis.Views
 {
     [XamlCompilation(XamlCompilationOptions.Compile)]
     public partial class BoardView : ContentView
     {
+        private SKCanvasView ArrowCanvas;
         public BoardView()
         {
             InitializeComponent();
+            InitializeCanvas();
+            this.BindingContextChanged += OnBindingContextChanged;
             this.BindingContext = BoardViewModel.Instance;
             InitializeChessBoardGUI();
             BoardViewModel.Instance.ScrollToLatestItem += BoardViewModel_ScrollToLatestMoveItem;
+        }
+        private void InitializeCanvas()
+        {
+            ArrowCanvas = new SKCanvasView();
+            AbsoluteLayout.SetLayoutBounds(ArrowCanvas, new Rectangle(0, 0, 1, 1));
+            AbsoluteLayout.SetLayoutFlags(ArrowCanvas, AbsoluteLayoutFlags.All);
+            ArrowCanvas.PaintSurface += OnCanvasViewPaintSurface; // Subscribe to the PaintSurface event
+            ArrowCanvas.BackgroundColor = Color.Transparent;
+
+
+            // Add the ArrowCanvas to the BoardViewAbsoluteLayout
+            BoardViewAbsoluteLayout.Children.Add(ArrowCanvas);
         }
         private void InitializeChessBoardGUI()
         {
@@ -87,7 +107,7 @@ namespace GeminiChessAnalysis.Views
                     };
                     // Bind the Text property of the label to the BottomRightLetter property of the cell
                     bottomRightLetterLabel.SetBinding(Label.TextProperty, new Binding("BottomRightLetter", source: cell));
-                    AbsoluteLayout.SetLayoutBounds(bottomRightLetterLabel, new Rectangle (piece.LayoutBounds.X + 0.8 * cell.CellWidth,
+                    AbsoluteLayout.SetLayoutBounds(bottomRightLetterLabel, new Xamarin.Forms.Rectangle (piece.LayoutBounds.X + 0.8 * cell.CellWidth,
                         piece.LayoutBounds.Y,
                         piece.LayoutBounds.Width,
                         piece.LayoutBounds.Height));
@@ -99,6 +119,7 @@ namespace GeminiChessAnalysis.Views
                     BoardViewAbsoluteLayout.LowerChild(cellView);
                 }
             }
+            BoardViewAbsoluteLayout.RaiseChild(ArrowCanvas);
         }
 
         private void CreateAndOverlaySpecificPieceViews(Piece[,] pieces)
@@ -145,5 +166,79 @@ namespace GeminiChessAnalysis.Views
             }
         }
 
+        private void OnBindingContextChanged(object sender, EventArgs e)
+        {
+            if (BindingContext is BoardViewModel viewModel)
+            {
+                viewModel.PropertyChanged += ViewModel_PropertyChanged;
+                // Assuming BestMoveArrowViewModel also notifies its changes
+                viewModel.BestMoveArrowViewModel.PropertyChanged += BestMoveArrowViewModel_PropertyChanged;
+            }
+        }
+
+        private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(BoardViewModel.BestMoveArrowViewModel))
+            {
+                ArrowCanvas.InvalidateSurface();
+            }
+        }
+
+        private void BestMoveArrowViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            ArrowCanvas.InvalidateSurface();
+        }
+
+        private void OnCanvasViewPaintSurface(object sender, SKPaintSurfaceEventArgs e)
+        {
+            var canvas = e.Surface.Canvas;
+            canvas.Clear(SKColors.Transparent);
+
+            // Assuming the BindingContext of BoardView is set to BoardViewModel
+            var viewModel = BindingContext as BoardViewModel; // Adjust the type to your actual ViewModel
+            if (viewModel?.BestMoveArrowViewModel?.ArrowVisible == true)
+            {
+                var arrowViewModel = viewModel.BestMoveArrowViewModel;
+                DrawArrow(canvas, new Point(arrowViewModel.ArrowStartX, arrowViewModel.ArrowStartY), new Point(arrowViewModel.ArrowEndX, arrowViewModel.ArrowEndY));
+            }
+        }
+
+        private void DrawArrow(SKCanvas canvas, Point startPoint, Point endPoint)
+        {
+            // Convert Points to SKPoint
+            var start = new SKPoint((float)startPoint.X, (float)startPoint.Y);
+            var end = new SKPoint((float)endPoint.X, (float)endPoint.Y);
+
+            // Convert Points to SKPoint
+            var scale = ArrowCanvas.CanvasSize.Width / (float)ArrowCanvas.Width;
+            var scaledStart = new SKPoint(start.X * scale, start.Y * scale);
+            var scaledEnd = new SKPoint(end.X * scale, end.Y * scale);
+
+            // Draw arrow line
+            using (var paint = new SKPaint { Color = SKColors.Navy, StrokeWidth = 10 })
+            {
+                canvas.DrawLine(scaledStart, scaledEnd, paint);
+            }
+
+            // Calculate and draw arrow head
+            var headSize = 30;
+            var angle = Math.Atan2(scaledEnd.Y - scaledStart.Y, scaledEnd.X - scaledStart.X);
+
+            // Calculate the new starting point for the arrowhead, offset outside the original endpoint
+            var delta = 10; // Distance to offset the arrowhead start point from the arrow line's end point
+            var arrowHeadStartX = scaledEnd.X + delta * (float)Math.Cos(angle);
+            var arrowHeadStartY = scaledEnd.Y + delta * (float)Math.Sin(angle);
+
+            var arrowHead = new SKPath();
+            arrowHead.MoveTo(arrowHeadStartX, arrowHeadStartY); // Start drawing the arrowhead from the new offset point
+            arrowHead.LineTo(arrowHeadStartX - headSize * (float)Math.Cos(angle - Math.PI / 6), arrowHeadStartY - headSize * (float)Math.Sin(angle - Math.PI / 6));
+            arrowHead.LineTo(arrowHeadStartX - headSize * (float)Math.Cos(angle + Math.PI / 6), arrowHeadStartY - headSize * (float)Math.Sin(angle + Math.PI / 6));
+            arrowHead.Close();
+
+            using (var paint = new SKPaint { Color = SKColors.Navy, IsAntialias = true })
+            {
+                canvas.DrawPath(arrowHead, paint);
+            }
+        }
     }
 }

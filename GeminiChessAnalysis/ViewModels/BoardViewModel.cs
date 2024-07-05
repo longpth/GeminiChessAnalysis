@@ -66,8 +66,11 @@ namespace GeminiChessAnalysis.ViewModels
         private List<Piece[,]> _bishopsSnapshotSub = new List<Piece[,]>();
         private List<Piece[,]> _pawnsSnapshotSub = new List<Piece[,]>();
 
+        private string _moveSound;
         private List<List<ObservableCollection<Piece>>> _snapShots = new List<List<ObservableCollection<Piece>>>();
+        private List<string> _soundSnapShots = new List<string>();
         private Dictionary<int, List<ObservableCollection<Piece>>> _snapShotSubs = new Dictionary<int, List<ObservableCollection<Piece>>>();
+        private List<string> _soundSubSnapShots = new List<string>();
         private IStockfish _stockfish = new StockfishWrapper();
         private int _animateTime = 200;
         private static BoardViewModel _instance;
@@ -77,10 +80,11 @@ namespace GeminiChessAnalysis.ViewModels
         private string _question_for_gemnini = "";
         private ChessGame _chessGame;
         private bool _isLoadedPgnMove = false;
-        private bool _isBranching = false;
         private int _branchingMoveAtCount = 0;
         private Piece _bestChessPieceSrc;
         private Piece _bestChessPieceDst;
+        private bool _isBranching = false;
+        private bool _isBranchingPre = false;
         #endregion
 
         #region Properties
@@ -135,7 +139,6 @@ namespace GeminiChessAnalysis.ViewModels
                 OnPropertyChanged(nameof(MoveIndex));
                 OnPropertyChanged(nameof(MoveIndexSub));
                 _isNewMove = true;
-                Others.PlayAudioFile("move_sound.mp3");
             }
         }
 
@@ -351,6 +354,7 @@ namespace GeminiChessAnalysis.ViewModels
                 OnPropertyChanged(nameof(BestMoveArrowViewModel));
             }
         }
+
         #endregion
 
         #region Constructor
@@ -1135,6 +1139,13 @@ namespace GeminiChessAnalysis.ViewModels
                         {
                             chessPieceDest.IsAlive = false;
                             chessPieceDest.ImageVisible = false;
+                            Others.PlayAudioFile("capture_sound.mp3");
+                            _moveSound = "capture_sound.mp3";
+                        }
+                        else
+                        {
+                            Others.PlayAudioFile("move_sound.mp3");
+                            _moveSound = "move_sound.mp3";
                         }
                     }
 
@@ -1408,6 +1419,8 @@ namespace GeminiChessAnalysis.ViewModels
                         _rooks[(int)EnumPieceColor.White, (int)EnumKingOrQueenSide.QueenSide].HasNotMoved = false;
                         ret = EnumKingOrQueenSide.QueenSide;
                     }
+                    Others.PlayAudioFile("castling_sound.mp3");
+                    _moveSound = "castling_sound.mp3";
                 }
                 else if(_kings[0, (int)EnumPieceColor.Black].HasNotMoved)
                 {
@@ -1436,6 +1449,8 @@ namespace GeminiChessAnalysis.ViewModels
                         SetPieceAt(_rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide].RowIdx, 3, _rooks[(int)EnumPieceColor.Black, (int)EnumKingOrQueenSide.QueenSide]);
                         ret = EnumKingOrQueenSide.QueenSide;
                     }
+                    Others.PlayAudioFile("castling_sound.mp3");
+                    _moveSound = "castling_sound.mp3";
                 }
             }
             return ret;
@@ -1527,11 +1542,23 @@ namespace GeminiChessAnalysis.ViewModels
                             IsVisibleAndClickable = true
                         });
                         _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                        _soundSubSnapShots.Add(_moveSound);
                         CreateSnapshotForPieces();
                     }
                 }
                 else if (MoveCount < MoveList.Count && moveItem.StrMove != MoveList[MoveCount].StrMove)
                 {
+                    for(int i = 0; i < MoveListSub.Count;  i++)
+                    {
+                        MoveListSub[i] = new MoveItem()
+                        {
+                            StrMove = MoveListSub[i].StrMove,
+                            MoveIndex = MoveListSub[i].MoveIndex,
+                            IsVisibleAndClickable = false
+                        };
+                        _snapShotSubs.Clear();
+                        _soundSubSnapShots.Clear();
+                    }
                     _isBranching = true;
                     _branchingMoveAtCount = MoveCount;
                     // this is a sub-branch move
@@ -1544,6 +1571,7 @@ namespace GeminiChessAnalysis.ViewModels
                             IsVisibleAndClickable = true
                         };
                         _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                        _soundSubSnapShots.Add(_moveSound);
                     }
                 }
                 else
@@ -1556,6 +1584,7 @@ namespace GeminiChessAnalysis.ViewModels
                     });
 
                     _snapShots.Add(CreateSnapshot());
+                    _soundSnapShots.Add(_moveSound);
                     CreateSnapshotForPieces();
                 }
             }
@@ -1986,6 +2015,7 @@ namespace GeminiChessAnalysis.ViewModels
         private void RestoreFromSnapshot(int index)
         {
             var snapshot = (index >= _branchingMoveAtCount) && _isBranching ? _snapShotSubs[index] : _snapShots[index];
+
             StringBuilder fenBuilder = new StringBuilder();
             int emptySquares = 0;
 
@@ -2047,6 +2077,9 @@ namespace GeminiChessAnalysis.ViewModels
 
             // Append other parts of the FEN string (placeholders for now)
             FenString = fenBuilder.ToString();
+
+            var soundSnapshot = _isBranching ? _soundSubSnapShots[index] : _soundSnapShots[index];
+            Others.PlayAudioFile(soundSnapshot);
 
         }
 
@@ -2238,6 +2271,7 @@ namespace GeminiChessAnalysis.ViewModels
                         src[i, j].ImageVisible = dest[i, j].IsAlive;
                         src[i, j].RowIdx = dest[i, j].RowIdx;
                         src[i, j].ColIdx = dest[i, j].ColIdx;
+                        src[i, j].HasNotMoved = dest[i, j].HasNotMoved;
                     }
                 }
             }
@@ -2603,6 +2637,7 @@ namespace GeminiChessAnalysis.ViewModels
                 GeminiStringResult = "";
                 // Remove all moves after the current move from MoveList and SnapShots
                 MoveList.Clear();
+                MoveListSub.Clear();
                 _snapShots.Clear();
                 ClearSnapshotsForPieces();
 

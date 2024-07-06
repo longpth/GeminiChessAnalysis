@@ -316,49 +316,6 @@ namespace GeminiChessAnalysis.Models
             MoveInfo = new MovePixel();
             Translation = new MovePixelWithTime();
         }
-
-        public void Copy(Piece other)
-        {
-            Type = other.Type;
-            Color = other.Color;
-            BackgroundColor = other.BackgroundColor;
-            ImagePath = other.ImagePath;
-            ImageScale = other.ImageScale;
-            CellWidth = other.CellWidth;
-            CellHeight = other.CellHeight;
-            CellSize = other.CellSize;
-            Index = other.Index;
-            MoveInfo.TranslateX = other.MoveInfo.TranslateX;
-            MoveInfo.TranslateY = other.MoveInfo.TranslateY;
-            HasNotMoved = other.HasNotMoved;
-            RowIdx = other.RowIdx;
-            ColIdx = other.ColIdx;
-            IsAlive = other.IsAlive;
-        }
-
-        public void CopyContent(Piece other)
-        {
-            Type = other.Type;
-            Color = other.Color;
-            ImagePath = other.ImagePath;
-            ImageScale = other.ImageScale;
-            HasNotMoved = other.HasNotMoved;
-            Index = other.Index;
-            IsAlive = other.IsAlive;
-        }
-
-        public void TranslateTo(int row, int column, double time)
-        {
-            if(_setOriginalCenter == false)
-            {
-                _originalCenter = new Rectangle(ColIdx * CellWidth, RowIdx * CellWidth, CellWidth, CellWidth).Center;
-                _setOriginalCenter = true;
-            }
-            Point newCenter = new Rectangle(column * CellWidth, row * CellWidth, CellWidth, CellWidth).Center;
-            double delta_x = newCenter.X - _originalCenter.X;
-            double delta_y = newCenter.Y - _originalCenter.Y;
-            Translation = new MovePixelWithTime { TranslateX = delta_x, TranslateY = delta_y, Duration = TimeSpan.FromMilliseconds(time) };
-        }
         #endregion
 
         #region Private Method
@@ -400,6 +357,49 @@ namespace GeminiChessAnalysis.Models
 
         #region Public Method
 
+
+        public void Copy(Piece other)
+        {
+            Type = other.Type;
+            Color = other.Color;
+            BackgroundColor = other.BackgroundColor;
+            ImagePath = other.ImagePath;
+            ImageScale = other.ImageScale;
+            CellWidth = other.CellWidth;
+            CellHeight = other.CellHeight;
+            CellSize = other.CellSize;
+            Index = other.Index;
+            MoveInfo.TranslateX = other.MoveInfo.TranslateX;
+            MoveInfo.TranslateY = other.MoveInfo.TranslateY;
+            HasNotMoved = other.HasNotMoved;
+            RowIdx = other.RowIdx;
+            ColIdx = other.ColIdx;
+            IsAlive = other.IsAlive;
+        }
+
+        public void CopyContent(Piece other)
+        {
+            Type = other.Type;
+            Color = other.Color;
+            ImagePath = other.ImagePath;
+            ImageScale = other.ImageScale;
+            HasNotMoved = other.HasNotMoved;
+            Index = other.Index;
+            IsAlive = other.IsAlive;
+        }
+
+        public void TranslateTo(int row, int column, double time)
+        {
+            if (_setOriginalCenter == false)
+            {
+                _originalCenter = new Rectangle(ColIdx * CellWidth, RowIdx * CellWidth, CellWidth, CellWidth).Center;
+                _setOriginalCenter = true;
+            }
+            Point newCenter = new Rectangle(column * CellWidth, row * CellWidth, CellWidth, CellWidth).Center;
+            double delta_x = newCenter.X - _originalCenter.X;
+            double delta_y = newCenter.Y - _originalCenter.Y;
+            Translation = new MovePixelWithTime { TranslateX = delta_x, TranslateY = delta_y, Duration = TimeSpan.FromMilliseconds(time) };
+        }
         #endregion
     }
 }

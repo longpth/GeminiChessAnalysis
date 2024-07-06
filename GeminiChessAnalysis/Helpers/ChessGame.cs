@@ -402,7 +402,7 @@ namespace GeminiChessAnalysis.Helpers
             // Update the tail of the FEN string to include the current turn, castling availability, en passant target, half-move clock, and full-move counter
             string turnIndicator = currentTurn == 'w' ? "w" : "b";
             // Assuming castling availability and en passant target are not changed in this example
-            string fenTail = $"{turnIndicator} KQkq - 0 {fullMoveCounter}";
+            string fenTail = $"{turnIndicator} KQkq - 0 {fullMoveCounter/2}";
 
             return string.Join("/", fen) + " " + fenTail;
         }

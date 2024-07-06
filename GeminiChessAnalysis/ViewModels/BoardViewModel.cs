@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Xamarin.Forms;
+using Xamarin.Forms.PlatformConfiguration.iOSSpecific;
 
 namespace GeminiChessAnalysis.ViewModels
 {
@@ -27,6 +28,7 @@ namespace GeminiChessAnalysis.ViewModels
     }
     public class MoveItem
     {
+        public string StrMoveRaw { get; set;}
         public string StrMove { get; set; }
         public int MoveIndex { get; set; }
         public bool IsVisibleAndClickable { get; set; } = false;
@@ -70,7 +72,7 @@ namespace GeminiChessAnalysis.ViewModels
         private List<List<ObservableCollection<Piece>>> _snapShots = new List<List<ObservableCollection<Piece>>>();
         private List<string> _soundSnapShots = new List<string>();
         private Dictionary<int, List<ObservableCollection<Piece>>> _snapShotSubs = new Dictionary<int, List<ObservableCollection<Piece>>>();
-        private List<string> _soundSubSnapShots = new List<string>();
+        private Dictionary<int, string> _soundSubSnapShots = new Dictionary<int, string>();
         private IStockfish _stockfish = new StockfishWrapper();
         private int _animateTime = 200;
         private static BoardViewModel _instance;
@@ -458,6 +460,7 @@ namespace GeminiChessAnalysis.ViewModels
             {
                 // Initialize the move index
                 int moveIndex = 0;
+                MoveList.Clear();
 
                 // Iterate through the moves and create MoveItem objects
                 foreach (var move in moves)
@@ -471,24 +474,15 @@ namespace GeminiChessAnalysis.ViewModels
                     // Create a new MoveItem
                     var moveItem = new MoveItem
                     {
+                        StrMoveRaw = move,
                         StrMove = move,
                         MoveIndex = moveIndex
                     };
 
                     moveItem.StrMove = moveIndex % 2 == 0 ? $"{moveItem.MoveIndex + 1}. {moveItem.StrMove}" : moveItem.StrMove;
 
-                    // Add the MoveItem to the PgnMoveList
-                    PgnMoveList.Add(moveItem);
-
-                    // Clone the MoveItem for MoveList
-                    var clonedMoveItem = new MoveItem
-                    {
-                        StrMove = moveItem.StrMove,
-                        MoveIndex = moveItem.MoveIndex
-                    };
-
                     // Add the cloned MoveItem to the MoveList
-                    MoveList.Add(clonedMoveItem);
+                    MoveList.Add(moveItem);
 
                     // Increment the move index
                     moveIndex++;
@@ -513,12 +507,15 @@ namespace GeminiChessAnalysis.ViewModels
 
         }
 
-        private void UpdatePiecesFromFens(string initialFen, string currentFen, bool isWhiteAtBottom)
+        private List<Point> GetMoveFromFen(string initialFen, string currentFen, bool isWhiteAtBottom)
         {
             var initialBoard = CreateBoardCellsFromFen(initialFen, isWhiteAtBottom);
             var currentBoard = CreateBoardCellsFromFen(currentFen, isWhiteAtBottom);
 
-            // Iterate through the initial board and update the pieces
+            Point? startPosition = null;
+            Point? endPosition = null;
+
+            // Iterate through the boards to find the start and end positions of the move
             for (int row = 0; row < initialBoard.Count; row++)
             {
                 for (int col = 0; col < initialBoard[row].Count; col++)
@@ -526,36 +523,30 @@ namespace GeminiChessAnalysis.ViewModels
                     var initialPiece = initialBoard[row][col];
                     var currentPiece = currentBoard[row][col];
 
-                    if (initialPiece != null)
+                    // Piece moved from this position
+                    if (initialPiece != null && (currentPiece == null || (initialPiece.Type != currentPiece.Type) && 
+                                                                         (initialPiece.Color != currentPiece.Color)))
                     {
-                        if (currentPiece == null)
-                        {
-                            // Piece has been captured
-                            initialPiece.IsAlive = false;
-                        }
-                        else if (initialPiece.Type != currentPiece.Type || initialPiece.Color != currentPiece.Color)
-                        {
-                            // Piece has moved or been replaced
-                            initialPiece.RowIdx = currentPiece.RowIdx;
-                            initialPiece.ColIdx = currentPiece.ColIdx;
-                            initialPiece.HasNotMoved = false;
-                        }
+                        startPosition = new Point(col, row);
                     }
-                    else if (currentPiece != null)
+
+                    // Piece moved to this position
+                    if (currentPiece != null && (initialPiece == null || (initialPiece.Type != currentPiece.Type) &&
+                                                                         (initialPiece.Color != currentPiece.Color)))
                     {
-                        // New piece has been created
-                        // You can handle this case if needed
+                        endPosition = new Point(col, row);
                     }
                 }
             }
 
-            // Update the piece arrays (_pawns, _rooks, _knights, _bishops, _queens, _kings)
-            UpdatePieces(_pawns, initialBoard);
-            UpdatePieces(_rooks, initialBoard);
-            UpdatePieces(_knights, initialBoard);
-            UpdatePieces(_bishops, initialBoard);
-            UpdatePieces(_queens, initialBoard);
-            UpdatePieces(_kings, initialBoard);
+            // If a move was found, return the start and end positions
+            if (startPosition.HasValue && endPosition.HasValue)
+            {
+                return new List<Point> { startPosition.Value, endPosition.Value };
+            }
+
+            // If no move was detected, return an empty list
+            return new List<Point>();
         }
 
         private void ResetPieceToOriginalPosition()
@@ -1457,9 +1448,9 @@ namespace GeminiChessAnalysis.ViewModels
         }
 
         // Move the piece by touching the piece
-        private void MoveCurrentPieceTo(int row, int col, bool updateHistory = true)
+        private void MoveCurrentPieceTo(int row, int col, bool force = false)
         {
-            if (ChessPiecesForDisplaying[row][col].CircleVisible == false && updateHistory == true)
+            if (ChessPiecesForDisplaying[row][col].CircleVisible == false && force == false)
             {
                 MoveIsValid = false;
                 return;
@@ -1475,118 +1466,116 @@ namespace GeminiChessAnalysis.ViewModels
 
             PiecesMoveRecord pieceMoveRecord = new PiecesMoveRecord(_whiteSide==EnumWhiteSide.Bottom);
 
-            if (updateHistory)
+            MoveItem moveItem = new MoveItem();
+            moveItem.MoveIndex = MoveCount;
+            if (castling == EnumKingOrQueenSide.None)
             {
-                MoveItem moveItem = new MoveItem();
-                moveItem.MoveIndex = MoveCount;
-                if (castling == EnumKingOrQueenSide.None)
+                Piece cellDest = GetPieceAt(row, col);
+
+                // store the move to history
+                pieceMoveRecord.PiecePosition = new Position(row, col);
+                pieceMoveRecord.PieceTypeProp = _currentCell.Type;
+
+                string tmp = $"{pieceMoveRecord.PgnType} {pieceMoveRecord.PgnPostion}".ToString();
+
+                // This is an capture move
+                if (cellDest.Type != EnumPieceType.None)
                 {
-                    Piece cellDest = GetPieceAt(row, col);
+                    string prefix = _currentCell.Type != EnumPieceType.Pawn ? pieceMoveRecord.PgnType : PiecesMoveRecord.Col2String(_currentCell.ColIdx, _whiteSide==EnumWhiteSide.Bottom);
+                    tmp = $"{prefix}x{pieceMoveRecord.PgnPostion}".ToString();
+                }
 
-                    // store the move to history
-                    pieceMoveRecord.PiecePosition = new Position(row, col);
-                    pieceMoveRecord.PieceTypeProp = _currentCell.Type;
+                moveItem.StrMove = tmp;
 
-                    string tmp = $"{pieceMoveRecord.PgnType} {pieceMoveRecord.PgnPostion}".ToString();
+                SetPieceAt(row, col, _currentCell);
+                SetPieceAt(currentRow, currentCol, pieceNone);
 
-                    // This is an capture move
-                    if (cellDest.Type != EnumPieceType.None)
+            }
+            else if (castling == EnumKingOrQueenSide.KingSide)
+            {
+                pieceMoveRecord = new PiecesMoveRecord(_whiteSide == EnumWhiteSide.Bottom);
+                pieceMoveRecord.Castling = EnumKingOrQueenSide.KingSide;
+                string tmp = $"{pieceMoveRecord.PgnType}".ToString();
+                moveItem.StrMove = tmp;
+            }
+            else
+            {
+                pieceMoveRecord = new PiecesMoveRecord(_whiteSide == EnumWhiteSide.Bottom);
+                pieceMoveRecord.Castling = EnumKingOrQueenSide.QueenSide;
+                string tmp = $"{pieceMoveRecord.PgnType}".ToString();
+                moveItem.StrMove = tmp;
+            }
+
+            // Add number to label if this is white's move
+            moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2+1}.{moveItem.StrMove}" : moveItem.StrMove.Replace(" ", "");
+
+            if (_isBranching)
+            {
+                // the move is in the sub-branch
+                if(MoveCount < MoveListSub.Count)
+                {
+                    MoveListSub[MoveCount] = new MoveItem()
                     {
-                        string prefix = _currentCell.Type != EnumPieceType.Pawn ? pieceMoveRecord.PgnType : PiecesMoveRecord.Col2String(_currentCell.ColIdx, _whiteSide==EnumWhiteSide.Bottom);
-                        tmp = $"{prefix}x{pieceMoveRecord.PgnPostion}".ToString();
-                    }
-
-                    moveItem.StrMove = tmp;
-
-                    SetPieceAt(row, col, _currentCell);
-                    SetPieceAt(currentRow, currentCol, pieceNone);
-
-                }
-                else if (castling == EnumKingOrQueenSide.KingSide)
-                {
-                    pieceMoveRecord = new PiecesMoveRecord(_whiteSide == EnumWhiteSide.Bottom);
-                    pieceMoveRecord.Castling = EnumKingOrQueenSide.KingSide;
-                    string tmp = $"{pieceMoveRecord.PgnType}".ToString();
-                    moveItem.StrMove = tmp;
-                }
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex,
+                        IsVisibleAndClickable = true
+                    };
+                    _snapShotSubs[MoveCount] = CreateSnapshot();
+                    _soundSubSnapShots[MoveCount] = _moveSound;
+                } 
                 else
                 {
-                    pieceMoveRecord = new PiecesMoveRecord(_whiteSide == EnumWhiteSide.Bottom);
-                    pieceMoveRecord.Castling = EnumKingOrQueenSide.QueenSide;
-                    string tmp = $"{pieceMoveRecord.PgnType}".ToString();
-                    moveItem.StrMove = tmp;
-                }
-
-                // Add number to label if this is white's move
-                moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2+1}.{moveItem.StrMove}" : moveItem.StrMove;
-
-                if (_isBranching)
-                {
-                    // the move is in the sub-branch
-                    if(MoveCount < MoveListSub.Count)
-                    {
-                        MoveListSub[MoveCount] = new MoveItem()
-                        {
-                            StrMove = moveItem.StrMove,
-                            MoveIndex = moveItem.MoveIndex,
-                            IsVisibleAndClickable = true
-                        };
-                        _snapShotSubs[MoveCount] = CreateSnapshot();
-                    } 
-                    else
-                    {
-                        MoveListSub.Add(new MoveItem()
-                        {
-                            StrMove = moveItem.StrMove,
-                            MoveIndex = moveItem.MoveIndex,
-                            IsVisibleAndClickable = true
-                        });
-                        _snapShotSubs.Add(MoveCount, CreateSnapshot());
-                        _soundSubSnapShots.Add(_moveSound);
-                        CreateSnapshotForPieces();
-                    }
-                }
-                else if (MoveCount < MoveList.Count && moveItem.StrMove != MoveList[MoveCount].StrMove)
-                {
-                    for(int i = 0; i < MoveListSub.Count;  i++)
-                    {
-                        MoveListSub[i] = new MoveItem()
-                        {
-                            StrMove = MoveListSub[i].StrMove,
-                            MoveIndex = MoveListSub[i].MoveIndex,
-                            IsVisibleAndClickable = false
-                        };
-                        _snapShotSubs.Clear();
-                        _soundSubSnapShots.Clear();
-                    }
-                    _isBranching = true;
-                    _branchingMoveAtCount = MoveCount;
-                    // this is a sub-branch move
-                    if (moveItem.StrMove != MoveListSub[MoveCount].StrMove)
-                    {
-                        MoveListSub[MoveCount] = new MoveItem()
-                        {
-                            StrMove = moveItem.StrMove,
-                            MoveIndex = moveItem.MoveIndex,
-                            IsVisibleAndClickable = true
-                        };
-                        _snapShotSubs.Add(MoveCount, CreateSnapshot());
-                        _soundSubSnapShots.Add(_moveSound);
-                    }
-                }
-                else
-                {
-                    MoveList.Add(moveItem);
                     MoveListSub.Add(new MoveItem()
                     {
                         StrMove = moveItem.StrMove,
-                        MoveIndex = moveItem.MoveIndex
+                        MoveIndex = moveItem.MoveIndex,
+                        IsVisibleAndClickable = true
                     });
-
-                    _snapShots.Add(CreateSnapshot());
-                    _soundSnapShots.Add(_moveSound);
+                    _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                    _soundSubSnapShots.Add(MoveCount, _moveSound);
                     CreateSnapshotForPieces();
                 }
+            }
+            else if (MoveCount < MoveList.Count && moveItem.StrMove != MoveList[MoveCount].StrMove)
+            {
+                for(int i = 0; i < MoveListSub.Count;  i++)
+                {
+                    MoveListSub[i] = new MoveItem()
+                    {
+                        StrMove = MoveListSub[i].StrMove,
+                        MoveIndex = MoveListSub[i].MoveIndex,
+                        IsVisibleAndClickable = false
+                    };
+                    _snapShotSubs.Clear();
+                    _soundSubSnapShots.Clear();
+                }
+                _isBranching = true;
+                _branchingMoveAtCount = MoveCount;
+                // this is a sub-branch move
+                if (moveItem.StrMove != MoveListSub[MoveCount].StrMove)
+                {
+                    MoveListSub[MoveCount] = new MoveItem()
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex,
+                        IsVisibleAndClickable = true
+                    };
+                    _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                    _soundSubSnapShots.Add(MoveCount, _moveSound);
+                }
+            }
+            else
+            {
+                MoveList.Add(moveItem);
+                MoveListSub.Add(new MoveItem()
+                {
+                    StrMove = moveItem.StrMove,
+                    MoveIndex = moveItem.MoveIndex
+                });
+
+                _snapShots.Add(CreateSnapshot());
+                _soundSnapShots.Add(_moveSound);
+                CreateSnapshotForPieces();
             }
 
             MoveIsValid = true;
@@ -2078,9 +2067,19 @@ namespace GeminiChessAnalysis.ViewModels
             // Append other parts of the FEN string (placeholders for now)
             FenString = fenBuilder.ToString();
 
-            var soundSnapshot = _isBranching ? _soundSubSnapShots[index] : _soundSnapShots[index];
-            Others.PlayAudioFile(soundSnapshot);
-
+            if (_isBranching)
+            {
+                if (_soundSubSnapShots.Count > 0 && _soundSubSnapShots.ContainsKey(index))
+                {
+                    Others.PlayAudioFile(_soundSubSnapShots[index]);
+                }
+            } else
+            {
+                if (_soundSnapShots.Count > 0)
+                {
+                    Others.PlayAudioFile(_soundSnapShots[index]);
+                }
+            }
         }
 
         private async Task AskStockFishCommandExecute()
@@ -2610,6 +2609,26 @@ namespace GeminiChessAnalysis.ViewModels
 
                 RestoreFromSnapshot(MoveCount);
                 IsWhiteTurn = !IsWhiteTurn;
+            } 
+            else if (_isLoadedPgnMove && !_isBranching)
+            {
+                string initialFen = _chessGame.FENList[MoveCount];
+                string currentFen = _chessGame.FENList[MoveCount + 1];
+
+                List<Point> points = GetMoveFromFen(initialFen, currentFen, _whiteSide == EnumWhiteSide.Bottom);
+
+                _currentCell = GetPieceAt((int)points[0].Y, (int)points[0].X);
+                _currentCell.ImageVisible = false;
+                _currentPiece = GetChessPiece(_currentCell);
+                _currentPiece.ImageVisible = true;
+
+                Device.BeginInvokeOnMainThread(() =>
+                {
+                    MoveCurrentPieceTo((int)points[1].Y, (int)points[1].X, true);
+                     _currentCell.ImageVisible = false;
+                    _currentCell = null;
+                });
+
             }
         }
 

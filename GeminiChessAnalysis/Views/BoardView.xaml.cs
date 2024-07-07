@@ -10,6 +10,7 @@ using SkiaSharp.Views.Forms;
 using Point = Xamarin.Forms.Point;
 using Color = Xamarin.Forms.Color;
 using System.ComponentModel;
+using GeminiChessAnalysis.Services;
 
 namespace GeminiChessAnalysis.Views
 {
@@ -20,12 +21,50 @@ namespace GeminiChessAnalysis.Views
         public BoardView()
         {
             InitializeComponent();
+            
             InitializeCanvas();
+            
             this.BindingContextChanged += OnBindingContextChanged;
+            
             this.BindingContext = BoardViewModel.Instance;
+            
             InitializeChessBoardGUI();
+            
             BoardViewModel.Instance.ScrollToLatestItem += BoardViewModel_ScrollToLatestMoveItem;
+            MessageService.Instance.Subscribe(OnScrollToItemRequested);
         }
+
+        private void OnScrollToItemRequested(string message)
+        {
+            if (message == MessageKeys.ScrollToFirst)
+            {
+                Device.BeginInvokeOnMainThread(() =>
+                {
+                    var delayTask = Task.Delay(500); // Create a delay task
+                    delayTask.ContinueWith(t =>
+                    {
+                        moveScrollView.ScrollToAsync(0, 0, true); // Scrolls to the top
+                    }, TaskScheduler.FromCurrentSynchronizationContext()); // Ensure continuation runs on UI thread
+                });
+            }
+            else
+            {
+                string[] moveInfo = message.Split(':');
+                if (moveInfo[0] == "MoveCount")
+                {
+                    int moveIndex = int.Parse(moveInfo[1]) - 1;
+                    Device.BeginInvokeOnMainThread(() =>
+                    {
+                        var delayTask = Task.Delay(500); // Create a delay task
+                        delayTask.ContinueWith(t =>
+                        {
+                            moveScrollView.ScrollToAsync(moveStackLayout.Children.ElementAt(moveIndex), ScrollToPosition.MakeVisible, true); // Scrolls to the top
+                        }, TaskScheduler.FromCurrentSynchronizationContext()); // Ensure continuation runs on UI thread
+                    });
+                }
+            }
+        }
+
         private void InitializeCanvas()
         {
             ArrowCanvas = new SKCanvasView();
@@ -33,7 +72,6 @@ namespace GeminiChessAnalysis.Views
             AbsoluteLayout.SetLayoutFlags(ArrowCanvas, AbsoluteLayoutFlags.All);
             ArrowCanvas.PaintSurface += OnCanvasViewPaintSurface; // Subscribe to the PaintSurface event
             ArrowCanvas.BackgroundColor = Color.Transparent;
-
 
             // Add the ArrowCanvas to the BoardViewAbsoluteLayout
             BoardViewAbsoluteLayout.Children.Add(ArrowCanvas);
@@ -158,11 +196,20 @@ namespace GeminiChessAnalysis.Views
         {
             await Task.Delay(50); // Delay to ensure layout updates
 
-            // Scroll to the latest item in the stack layout
-            var latestItem = moveStackLayout.Children.LastOrDefault();
-            if (latestItem != null)
+            // Assuming MoveIndex is accessible here and is the index of the item you want to scroll to
+            var viewModel = BindingContext as BoardViewModel;
+            if (viewModel == null) return;
+
+            int moveIndex = viewModel.MoveIndex; // Get the MoveIndex from your ViewModel
+
+            // Ensure the index is within the bounds of the children collection
+            if (moveStackLayout.Children.Count > moveIndex && moveIndex >= 0)
             {
-                await moveScrollView.ScrollToAsync(latestItem, ScrollToPosition.End, true);
+                var targetItem = moveStackLayout.Children.ElementAt(moveIndex);
+                if (targetItem != null)
+                {
+                    await moveScrollView.ScrollToAsync(targetItem, ScrollToPosition.MakeVisible, true);
+                }
             }
         }
 

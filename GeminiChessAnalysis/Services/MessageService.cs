@@ -7,14 +7,21 @@ namespace GeminiChessAnalysis.Services
 {
     public interface IMessageService
     {
-        void Subscribe(Action<string> onPgnReceived);
-        void Unsubscribe(Action<string> onPgnReceived);
-        void NotifySubscribers(string pgnText);
+        void Subscribe(Action<string> onMessageReceived);
+        void Unsubscribe(Action<string> onMessageReceived);
+        void NotifySubscribers(string msgText);
     }
+
+    public static class MessageKeys
+    {
+        public const string ScrollToFirst = "ScrollToFirst";
+        public const string PGNFromChessCom = "Chess.com";
+    }
+
     public class MessageService : IMessageService
     {
         private readonly List<Action<string>> _subscribers = new List<Action<string>>();
-        private string _pendingPgnText;
+        private string _pendingmsgText;
 
         // Singleton instance
         private static readonly Lazy<MessageService> _instance = new Lazy<MessageService>(() => new MessageService());
@@ -22,42 +29,42 @@ namespace GeminiChessAnalysis.Services
 
         private MessageService() { }
 
-        public void Subscribe(Action<string> onPgnReceived)
+        public void Subscribe(Action<string> onMessageReceived)
         {
-            if (!_subscribers.Contains(onPgnReceived))
+            if (!_subscribers.Contains(onMessageReceived))
             {
-                _subscribers.Add(onPgnReceived);
+                _subscribers.Add(onMessageReceived);
                 // Immediately notify this subscriber if there's pending data
-                if (_pendingPgnText != null)
+                if (_pendingmsgText != null)
                 {
-                    onPgnReceived(_pendingPgnText);
-                    _pendingPgnText = null; // Clear after notifying
+                    onMessageReceived(_pendingmsgText);
+                    _pendingmsgText = null; // Clear after notifying
                 }
             }
         }
 
-        public void Unsubscribe(Action<string> onPgnReceived)
+        public void Unsubscribe(Action<string> onMessageReceived)
         {
-            if (_subscribers.Contains(onPgnReceived))
+            if (_subscribers.Contains(onMessageReceived))
             {
-                _subscribers.Remove(onPgnReceived);
+                _subscribers.Remove(onMessageReceived);
             }
         }
 
-        public void NotifySubscribers(string pgnText)
+        public void NotifySubscribers(string msgText)
         {
             if (_subscribers.Any())
             {
                 foreach (var subscriber in _subscribers)
                 {
-                    subscriber(pgnText);
+                    subscriber(msgText);
                 }
-                _pendingPgnText = null; // Clear after notifying
+                _pendingmsgText = null; // Clear after notifying
             }
             else
             {
                 // Hold onto the data if no subscribers are present
-                _pendingPgnText = pgnText;
+                _pendingmsgText = msgText;
             }
         }
     }

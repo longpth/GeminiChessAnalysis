@@ -77,7 +77,6 @@ namespace GeminiChessAnalysis.ViewModels
         private int _animateTime = 200;
         private static BoardViewModel _instance;
         private bool _isNewMove = false;
-        private bool _bestMoveAvailable = false;
         private bool _bestMoveValidForGemini = false;
         private string _question_for_gemnini = "";
         private ChessGame _chessGame;
@@ -86,7 +85,6 @@ namespace GeminiChessAnalysis.ViewModels
         private Piece _bestChessPieceSrc;
         private Piece _bestChessPieceDst;
         private bool _isBranching = false;
-        private bool _isBranchingPre = false;
         #endregion
 
         #region Properties
@@ -141,6 +139,8 @@ namespace GeminiChessAnalysis.ViewModels
                 OnPropertyChanged(nameof(MoveIndex));
                 OnPropertyChanged(nameof(MoveIndexSub));
                 _isNewMove = true;
+                string message = $"MoveCount,{_moveCount}";
+                MessageService.Instance.NotifySubscribers(message);
             }
         }
 
@@ -185,7 +185,6 @@ namespace GeminiChessAnalysis.ViewModels
                 {
                     var previousMove = _bestMove;
                     _bestMove = value;
-                    OnPropertyChanged(nameof(BestMove));
 
                     List<Point> movePoints = PiecesMoveRecord.ConvertStringToPieceIndexes(_bestMove, _whiteSide == EnumWhiteSide.Bottom);
                     // Get chess piece at the start position
@@ -195,6 +194,11 @@ namespace GeminiChessAnalysis.ViewModels
                     if ((_bestChessPieceSrc.Color == EnumPieceColor.White && IsWhiteTurn == false) ||
                         (_bestChessPieceSrc.Color == EnumPieceColor.Black && IsWhiteTurn == true))
                     {
+                        if (previousMove == null)
+                        {
+                            _bestMove = null;
+                            return;
+                        }
                         _bestMove = previousMove;
                         // all piece CellWith is the same, so we can use any piece to get the width
                         movePoints = PiecesMoveRecord.ConvertStringToPieceIndexes(_bestMove, _whiteSide == EnumWhiteSide.Bottom);
@@ -213,6 +217,7 @@ namespace GeminiChessAnalysis.ViewModels
                         _bestMoveValidForGemini = true;
                     }
 
+                    OnPropertyChanged(nameof(BestMove));
                     OnPropertyChanged(nameof(BestMoveArrowViewModel));
                 }
             }
@@ -266,6 +271,8 @@ namespace GeminiChessAnalysis.ViewModels
                 }
             }
         }
+
+        public bool IsPgnLoaded { get => _isLoadedPgnMove; private set { } }
 
         public Piece[,] Kings
         {
@@ -406,7 +413,6 @@ namespace GeminiChessAnalysis.ViewModels
             {
                 if (_bestMoveValidForGemini)
                 {
-                    _bestMoveAvailable = false;
                     _bestMoveValidForGemini = false;
                     string bestChessPieceName = PiecesMoveRecord.PieceType2StringFullName(_bestChessPieceSrc.Type);
                     string besChessPieceColor = (_bestChessPieceSrc.Color == EnumPieceColor.White) ? "White" : "Black";
@@ -444,6 +450,10 @@ namespace GeminiChessAnalysis.ViewModels
 
         private void ProcessPgnImportText(string pgnText)
         {
+            if (pgnText.Contains(MessageKeys.PGNFromChessCom)==false)
+            {
+                return;
+            }
             string moveParts = ExtractMovesFromLoadedPgn(pgnText);
 
             moveParts = moveParts.Replace("\n", " ").Replace("+", "");
@@ -458,9 +468,11 @@ namespace GeminiChessAnalysis.ViewModels
 
             Device.BeginInvokeOnMainThread(() =>
             {
+                _isLoadedPgnMove = false;
                 // Initialize the move index
                 int moveIndex = 0;
                 MoveList.Clear();
+                MoveListSub.Clear();
 
                 // Iterate through the moves and create MoveItem objects
                 foreach (var move in moves)
@@ -479,10 +491,15 @@ namespace GeminiChessAnalysis.ViewModels
                         MoveIndex = moveIndex
                     };
 
-                    moveItem.StrMove = moveIndex % 2 == 0 ? $"{moveItem.MoveIndex + 1}. {moveItem.StrMove}" : moveItem.StrMove;
+                    moveItem.StrMove = moveIndex % 2 == 0 ? $"{moveItem.MoveIndex/2 + 1}. {moveItem.StrMove}" : moveItem.StrMove.Replace(" ", "");
 
                     // Add the cloned MoveItem to the MoveList
                     MoveList.Add(moveItem);
+                    MoveListSub.Add(new MoveItem()
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex
+                    });
 
                     // Increment the move index
                     moveIndex++;
@@ -503,11 +520,12 @@ namespace GeminiChessAnalysis.ViewModels
 
                 // switch to loaded pgn move, instead of moving manually by user
                 _isLoadedPgnMove = true;
-            });
 
+            });
+            MessageService.Instance.NotifySubscribers(MessageKeys.ScrollToFirst);
         }
 
-        private List<Point> GetMoveFromFen(string initialFen, string currentFen, bool isWhiteAtBottom)
+        private List<Point> GetMoveFromFen(string initialFen, string currentFen, bool isWhiteTurn, bool isWhiteAtBottom)
         {
             var initialBoard = CreateBoardCellsFromFen(initialFen, isWhiteAtBottom);
             var currentBoard = CreateBoardCellsFromFen(currentFen, isWhiteAtBottom);
@@ -524,19 +542,23 @@ namespace GeminiChessAnalysis.ViewModels
                     var currentPiece = currentBoard[row][col];
 
                     // Piece moved from this position
-                    if (initialPiece != null && (currentPiece == null || (initialPiece.Type != currentPiece.Type) && 
-                                                                         (initialPiece.Color != currentPiece.Color)))
+                    if (initialPiece != null && (currentPiece == null || (initialPiece.Type != currentPiece.Type) ||
+                                                 (initialPiece.Color != currentPiece.Color)) &&
+                        initialPiece.Color == (isWhiteTurn ? EnumPieceColor.White : EnumPieceColor.Black))
                     {
                         startPosition = new Point(col, row);
                     }
 
                     // Piece moved to this position
-                    if (currentPiece != null && (initialPiece == null || (initialPiece.Type != currentPiece.Type) &&
-                                                                         (initialPiece.Color != currentPiece.Color)))
+                    if (currentPiece != null && (initialPiece == null || (initialPiece.Type != currentPiece.Type) ||
+                                                 (initialPiece.Color != currentPiece.Color)) &&
+                        currentPiece.Color == (isWhiteTurn ? EnumPieceColor.White : EnumPieceColor.Black))
                     {
                         endPosition = new Point(col, row);
+                        break; // Assuming only one piece is moved at a time, break here
                     }
                 }
+                if (startPosition.HasValue && endPosition.HasValue) break; // Break outer loop if both positions are found
             }
 
             // If a move was found, return the start and end positions
@@ -989,6 +1011,12 @@ namespace GeminiChessAnalysis.ViewModels
             return true;
         }
 
+        private void AskStockFishToStartNewGame()
+        {
+            string command2stockfish = buildStockFishCommand("ucinewgame");
+            _stockfish.SetInput(command2stockfish);
+        }
+
         private string AskStockFishEvaluateBoard()
         {
             string command2stockfish;
@@ -1021,7 +1049,7 @@ namespace GeminiChessAnalysis.ViewModels
             return output;
         }
 
-        private string AskStockFishAbourBestMove(string fenString, int depth = 4)
+        private string AskStockFishAboutBestMove(string fenString, int depth = 4)
         {
             string command2stockfish;
             string output;
@@ -1507,12 +1535,29 @@ namespace GeminiChessAnalysis.ViewModels
             }
 
             // Add number to label if this is white's move
-            moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2+1}.{moveItem.StrMove}" : moveItem.StrMove.Replace(" ", "");
+            moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2 + 1}. {moveItem.StrMove}" : moveItem.StrMove.Replace(" ", "");
 
+            if(!_isLoadedPgnMove)
+            {
+                RecordMovePieceByTouch(moveItem);
+            }
+            else
+            {
+                RecordMovePieceFromLoadedPgn(moveItem);
+            }
+
+            MoveIsValid = true;
+            IsWhiteTurn = !IsWhiteTurn; // Switch turns after a valid move
+
+            MoveCount++;
+        }
+
+        private void RecordMovePieceByTouch(MoveItem moveItem)
+        {
             if (_isBranching)
             {
                 // the move is in the sub-branch
-                if(MoveCount < MoveListSub.Count)
+                if (MoveCount < MoveListSub.Count)
                 {
                     MoveListSub[MoveCount] = new MoveItem()
                     {
@@ -1522,7 +1567,7 @@ namespace GeminiChessAnalysis.ViewModels
                     };
                     _snapShotSubs[MoveCount] = CreateSnapshot();
                     _soundSubSnapShots[MoveCount] = _moveSound;
-                } 
+                }
                 else
                 {
                     MoveListSub.Add(new MoveItem()
@@ -1538,7 +1583,7 @@ namespace GeminiChessAnalysis.ViewModels
             }
             else if (MoveCount < MoveList.Count && moveItem.StrMove != MoveList[MoveCount].StrMove)
             {
-                for(int i = 0; i < MoveListSub.Count;  i++)
+                for (int i = 0; i < MoveListSub.Count; i++)
                 {
                     MoveListSub[i] = new MoveItem()
                     {
@@ -1577,11 +1622,84 @@ namespace GeminiChessAnalysis.ViewModels
                 _soundSnapShots.Add(_moveSound);
                 CreateSnapshotForPieces();
             }
+        }
 
-            MoveIsValid = true;
-            IsWhiteTurn = !IsWhiteTurn; // Switch turns after a valid move
+        private void RecordMovePieceFromLoadedPgn(MoveItem moveItem)
+        {
+            if (_isBranching)
+            {
+                // the move is in the sub-branch
+                if (MoveCount < MoveListSub.Count)
+                {
+                    MoveListSub[MoveCount] = new MoveItem()
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex,
+                        IsVisibleAndClickable = true
+                    };
+                    _snapShotSubs[MoveCount] = CreateSnapshot();
+                    _soundSubSnapShots[MoveCount] = _moveSound;
+                }
+                else
+                {
+                    MoveListSub.Add(new MoveItem()
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex,
+                        IsVisibleAndClickable = true
+                    });
+                    _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                    _soundSubSnapShots.Add(MoveCount, _moveSound);
+                    CreateSnapshotForPieces();
+                }
+            }
+            else if (MoveCount < MoveList.Count && moveItem.StrMove.Replace(" ","") != MoveList[MoveCount].StrMove.Replace(" ",""))
+            {
+                for (int i = 0; i < MoveListSub.Count; i++)
+                {
+                    MoveListSub[i] = new MoveItem()
+                    {
+                        StrMove = MoveListSub[i].StrMove,
+                        MoveIndex = MoveListSub[i].MoveIndex,
+                        IsVisibleAndClickable = false
+                    };
+                    _snapShotSubs.Clear();
+                    _soundSubSnapShots.Clear();
+                }
+                _isBranching = true;
+                _branchingMoveAtCount = MoveCount;
+                // this is a sub-branch move
+                if (moveItem.StrMove != MoveListSub[MoveCount].StrMove)
+                {
+                    MoveListSub[MoveCount] = new MoveItem()
+                    {
+                        StrMove = moveItem.StrMove,
+                        MoveIndex = moveItem.MoveIndex,
+                        IsVisibleAndClickable = true
+                    };
+                    _snapShotSubs.Add(MoveCount, CreateSnapshot());
+                    _soundSubSnapShots.Add(MoveCount, _moveSound);
+                }
+            }
+            else if (MoveCount < MoveList.Count)
+            {
+                _snapShots.Add(CreateSnapshot());
+                _soundSnapShots.Add(_moveSound);
+                CreateSnapshotForPieces();
+            }
+            else
+            {
+                MoveList.Add(moveItem);
+                MoveListSub.Add(new MoveItem()
+                {
+                    StrMove = moveItem.StrMove,
+                    MoveIndex = moveItem.MoveIndex
+                });
 
-            MoveCount++;
+                _snapShots.Add(CreateSnapshot());
+                _soundSnapShots.Add(_moveSound);
+                CreateSnapshotForPieces();
+            }
         }
 
         private void VisualizePossibleMoveCurrentPiece()
@@ -2075,7 +2193,7 @@ namespace GeminiChessAnalysis.ViewModels
                 }
             } else
             {
-                if (_soundSnapShots.Count > 0)
+                if (_soundSnapShots.Count > 0 && index < _soundSnapShots.Count)
                 {
                     Others.PlayAudioFile(_soundSnapShots[index]);
                 }
@@ -2090,7 +2208,7 @@ namespace GeminiChessAnalysis.ViewModels
             }
 
             // Assuming _fenString is already set
-            string output = AskStockFishAbourBestMove(_fenString);
+            string output = AskStockFishAboutBestMove(_fenString);
 
             var outputArr = output.Split(' ');
             string bestMoveStr = "";
@@ -2107,7 +2225,7 @@ namespace GeminiChessAnalysis.ViewModels
                 BestMove = bestMoveStr;
 
                 // simulate a next move as the bestmove from Stockfish
-                AskStockFishAbourBestMove(_fenString + $" moves {bestMoveStr}");
+                AskStockFishAboutBestMove(_fenString + $" moves {bestMoveStr}");
 
                 // evaluate the Board after the best move by stockfish
                 var outputEval = AskStockFishEvaluateBoard();
@@ -2126,7 +2244,6 @@ namespace GeminiChessAnalysis.ViewModels
                         if (_isNewMove)
                         {
                             _isNewMove = false;
-                            _bestMoveAvailable = true;
                         }
                     }
                 }
@@ -2610,12 +2727,12 @@ namespace GeminiChessAnalysis.ViewModels
                 RestoreFromSnapshot(MoveCount);
                 IsWhiteTurn = !IsWhiteTurn;
             } 
-            else if (_isLoadedPgnMove && !_isBranching)
+            else if (_isLoadedPgnMove && !_isBranching && MoveCount + 1 < _chessGame.FENList.Count)
             {
                 string initialFen = _chessGame.FENList[MoveCount];
                 string currentFen = _chessGame.FENList[MoveCount + 1];
 
-                List<Point> points = GetMoveFromFen(initialFen, currentFen, _whiteSide == EnumWhiteSide.Bottom);
+                List<Point> points = GetMoveFromFen(initialFen, currentFen, IsWhiteTurn, _whiteSide == EnumWhiteSide.Bottom);
 
                 _currentCell = GetPieceAt((int)points[0].Y, (int)points[0].X);
                 _currentCell.ImageVisible = false;
@@ -2637,8 +2754,10 @@ namespace GeminiChessAnalysis.ViewModels
         /// </summary>
         public void NewBoardSetup()
         {
+            AskStockFishToStartNewGame();
+
             // Flip to the original side before starting a new game
-            if(_whiteSide == EnumWhiteSide.Top)
+            if (_whiteSide == EnumWhiteSide.Top)
             {
                 FlipBoard();
             }
@@ -2647,7 +2766,7 @@ namespace GeminiChessAnalysis.ViewModels
             {
                 RestoreFromSnapshot(0);
                 _fenString = null;
-                _bestMove = "";
+                _bestMove = null;
                 _stockfishEvaluationResult = 0.0;
                 _stockfishEvaluation = "";
                 MoveCount = 0;

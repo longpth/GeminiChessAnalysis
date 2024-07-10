@@ -140,7 +140,10 @@ namespace GeminiChessAnalysis.Models
         public static List<Point> ConvertStringToPieceIndexes(string move, bool isWhiteAtBottom)
         {
             // Ensure the move string is valid
-            if (move.Length != 4) throw new ArgumentException("Invalid move format.");
+            if (move.Length != 4 && move.Length != 5)
+            {
+                throw new ArgumentException("Invalid move format.");
+            }
 
             // Parse the string
             char startColumnChar = move[0];

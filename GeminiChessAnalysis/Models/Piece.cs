@@ -293,6 +293,8 @@ namespace GeminiChessAnalysis.Models
 
         public int Index { get; set; } = 0;
 
+        public bool IsPromotion { get; set; } = false;
+
         #endregion
 
         #region RelayCommand
@@ -375,6 +377,7 @@ namespace GeminiChessAnalysis.Models
             RowIdx = other.RowIdx;
             ColIdx = other.ColIdx;
             IsAlive = other.IsAlive;
+            IsPromotion = other.IsPromotion;
         }
 
         public void CopyContent(Piece other)
@@ -386,6 +389,7 @@ namespace GeminiChessAnalysis.Models
             HasNotMoved = other.HasNotMoved;
             Index = other.Index;
             IsAlive = other.IsAlive;
+            IsPromotion = other.IsPromotion;
         }
 
         public void TranslateTo(int row, int column, double time)

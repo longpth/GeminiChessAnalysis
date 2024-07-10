@@ -1,6 +1,7 @@
 ﻿using GeminiChessAnalysis.Helpers;
 using GeminiChessAnalysis.Models;
 using GeminiChessAnalysis.Services;
+using GeminiChessAnalysis.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -1309,7 +1310,14 @@ namespace GeminiChessAnalysis.ViewModels
                     pieceCollection = _bishops;
                     break;
                 case EnumPieceType.Queen:
-                    pieceCollection = _queens;
+                    if (cell.IsPromotion == false)
+                    {
+                        pieceCollection = _queens;
+                    }
+                    else
+                    {
+                        pieceCollection = _pawns;
+                    }
                     break;
                 case EnumPieceType.King:
                     pieceCollection = _kings;
@@ -1321,7 +1329,7 @@ namespace GeminiChessAnalysis.ViewModels
 
             if (pieceRet == null)
             {
-                if (cell.Type != EnumPieceType.King && cell.Type != EnumPieceType.Queen)
+                if ((cell.Type != EnumPieceType.King && cell.Type != EnumPieceType.Queen) || cell.IsPromotion == true)
                 {
                     for (int i = 0; i < pieceCollection.GetLength(1); i++)
                     {
@@ -1509,6 +1517,27 @@ namespace GeminiChessAnalysis.ViewModels
             return ret;
         }
 
+        /// <summary>
+        /// Displays the promotion view for a pawn reaching the opposite end of the board, allowing the user to select a new piece.
+        /// </summary>
+        /// <param name="color">The color of the pawn being promoted.</param>
+        /// <param name="onPromotionSelected">The callback action to execute with the selected piece type.</param>
+        /// <remarks>
+        /// This method creates a new instance of the PromotionPage, passing a callback that handles the user's selection.
+        /// The PromotionPage is displayed modally. Once the user selects a piece type for promotion, the callback is invoked with the selected type,
+        /// and the modal is dismissed.
+        /// </remarks>
+        private void ShowPromotionView(Piece pawn, Action<EnumPieceType> onPromotionSelected)
+        {
+            var promotionModalPage = new PromotionPage(selectedPieceType =>
+            {
+                // Handle the promotion selection
+                onPromotionSelected?.Invoke(selectedPieceType);
+            }, IsWhiteTurn);
+
+            Xamarin.Forms.Application.Current.MainPage.Navigation.PushModalAsync(promotionModalPage);
+        }
+
         // Move the piece by touching the piece
         private void MoveCurrentPieceTo(int row, int col, bool force = false)
         {
@@ -1549,7 +1578,64 @@ namespace GeminiChessAnalysis.ViewModels
 
                 moveItem.StrMove = tmp;
 
-                SetPieceAt(row, col, _currentCell);
+                // Check for pawn promotion condition
+                bool isPromotion = _currentCell.Type == EnumPieceType.Pawn &&
+                ((row == 0 && _currentCell.Color == EnumPieceColor.White) ||
+                 (row == 7 && _currentCell.Color == EnumPieceColor.Black));
+
+                // Handle pawn promotion
+                if (isPromotion)
+                {
+                    Piece pawn = new Piece();
+                    pawn.Copy(_currentCell);
+                    ShowPromotionView(pawn,  selectedPieceType =>
+                    {
+                        // Update moveItem.StrMove based on the selected piece type
+                        string promotionNotation = "";
+                        string imagePath = "";
+                        switch (selectedPieceType)
+                        {
+                            case EnumPieceType.Queen:
+                                promotionNotation = "=Q";
+                                imagePath = pawn.Color == EnumPieceColor.White ? "white_queen.png" : "black_queen.png";
+                                break;
+                            case EnumPieceType.Rook:
+                                promotionNotation = "=R";
+                                imagePath = pawn.Color == EnumPieceColor.White ? "white_rook.png" : "black_rook.png";
+                                break;
+                            case EnumPieceType.Bishop:
+                                promotionNotation = "=B";
+                                imagePath = pawn.Color == EnumPieceColor.White ? "white_bishop.png" : "black_bishop.png";
+                                break;
+                            case EnumPieceType.Knight:
+                                promotionNotation = "=N";
+                                imagePath = pawn.Color == EnumPieceColor.White ? "white_knight.png" : "black_knight.png";
+                                break;
+                            default:
+                                throw new InvalidOperationException("Invalid piece type for promotion.");
+                        }
+
+                        // Replace the pawn with the selected piece type
+                        Piece promotedPiece = new Piece(selectedPieceType, pawn.Color) { RowIdx = pawn.RowIdx, ColIdx = pawn.ColIdx, ImagePath = imagePath, IsPromotion = true, Index = pawn.Index };
+
+                        // Append the promotion notation to the move string
+                        moveItem.StrMove += promotionNotation;
+                        SetPieceAt(row, col, promotedPiece);
+
+                        RecordMovePieceByTouch(moveItem);
+
+                        MoveIsValid = true;
+                        IsWhiteTurn = !IsWhiteTurn; // Switch turns after a valid move
+
+                        MoveCount++;
+                    });
+                    SetPieceAt(currentRow, currentCol, pieceNone);
+                    return;
+                }
+                else
+                {
+                    SetPieceAt(row, col, _currentCell);
+                }
                 SetPieceAt(currentRow, currentCol, pieceNone);
 
             }
@@ -2440,6 +2526,7 @@ namespace GeminiChessAnalysis.ViewModels
                         src[i, j].RowIdx = dest[i, j].RowIdx;
                         src[i, j].ColIdx = dest[i, j].ColIdx;
                         src[i, j].HasNotMoved = dest[i, j].HasNotMoved;
+                        src[i, j].ImagePath = dest[i,j].ImagePath;
                     }
                 }
             }

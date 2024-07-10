@@ -174,9 +174,7 @@ namespace GeminiChessAnalysis.Views
                         BindingContext = piece,
                     };
 
-                    // Assuming PieceView has a property for setting the image source directly
-                    pieceView.ImageSource = piece.ImagePath;
-
+                    pieceView.SetBinding(PieceView.ImageSourceProperty, "ImagePath");
                     pieceView.SetBinding(PieceView.ImageVisibleProperty, "ImageVisible");
                     pieceView.SetBinding(PieceView.TranslationRequestProperty, "Translation");
 

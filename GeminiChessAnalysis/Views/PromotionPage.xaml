@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms" 
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GeminiChessAnalysis.Views.PromotionPage"
+             BackgroundColor="Transparent">
+    <StackLayout HorizontalOptions="Center" VerticalOptions="CenterAndExpand">
+        <!--<Label Text="Choose piece for promotion:" HorizontalOptions="Center"/>-->
+        <StackLayout Orientation="Horizontal" HorizontalOptions="Center" HeightRequest="60" BackgroundColor="LightGreen">
+            <ImageButton BackgroundColor="LightGreen" Aspect="AspectFit" x:Name="QueenButton" Clicked="OnPromoteToQueen"/>
+            <ImageButton BackgroundColor="LightGreen" Aspect="AspectFit" x:Name="RookButton" Clicked="OnPromoteToRook"/>
+            <ImageButton BackgroundColor="LightGreen" Aspect="AspectFit" x:Name="BishopButton" Clicked="OnPromoteToBishop"/>
+            <ImageButton BackgroundColor="LightGreen" Aspect="AspectFit" x:Name="KnightButton" Clicked="OnPromoteToKnight"/>
+        </StackLayout>
+    </StackLayout>
+</ContentPage>

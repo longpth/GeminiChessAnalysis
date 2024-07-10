@@ -29,8 +29,7 @@
                             <customviews:ClickableLabel 
                                 Text="{Binding StrMove}" 
                                 Command="{Binding Path=BindingContext.ReconstructHistoryMoves, Source={x:Reference MyBoardView}}" 
-                                CommandParameter="{Binding MoveIndex}"
-                                WidthRequest="50">
+                                CommandParameter="{Binding MoveIndex}">
                             </customviews:ClickableLabel>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
@@ -45,7 +44,6 @@
                                 Command="{Binding Path=BindingContext.ReconstructHistorySubMoves, Source={x:Reference MyBoardView}}" 
                                 CommandParameter="{Binding MoveIndex}"
                                 IsVisibleAndClickable="{Binding IsVisibleAndClickable}"
-                                WidthRequest="50"
                                 >
                             </customviews:ClickableLabel>
                         </DataTemplate>

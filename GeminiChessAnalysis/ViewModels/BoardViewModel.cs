@@ -141,6 +141,7 @@ namespace GeminiChessAnalysis.ViewModels
                 _isNewMove = true;
                 string message = $"MoveCount,{_moveCount}";
                 MessageService.Instance.NotifySubscribers(message);
+                BestMoveArrowViewModel.ArrowVisible = false;
             }
         }
 
@@ -1101,13 +1102,10 @@ namespace GeminiChessAnalysis.ViewModels
                     (dropCell.CircleVisible == true))// a valid cell
                 {
                     // Now, update the UI on the main thread
-                    Device.BeginInvokeOnMainThread(() =>
-                    {
-                        MoveCurrentPieceTo(dropCell.RowIdx, dropCell.ColIdx);
-                        InvisibleAllCircle();
-                        _currentCell.ImageVisible = false;
-                        _currentCell = null;
-                    });
+                    MoveCurrentPieceTo(dropCell.RowIdx, dropCell.ColIdx);
+                    InvisibleAllCircle();
+                    _currentCell.ImageVisible = false;
+                    _currentCell = null;
                 }
                 else if (dropCell.CircleVisible == false)
                 {
@@ -1535,7 +1533,7 @@ namespace GeminiChessAnalysis.ViewModels
             }
 
             // Add number to label if this is white's move
-            moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2 + 1}. {moveItem.StrMove}" : moveItem.StrMove.Replace(" ", "");
+            moveItem.StrMove = MoveCount % 2 == 0 ? $"{moveItem.MoveIndex/2 + 1}. {moveItem.StrMove.Replace(" ", "")}" : moveItem.StrMove.Replace(" ", "");
 
             if(!_isLoadedPgnMove)
             {
@@ -1626,6 +1624,22 @@ namespace GeminiChessAnalysis.ViewModels
 
         private void RecordMovePieceFromLoadedPgn(MoveItem moveItem)
         {
+            bool isDifferentMoves = true;
+            string moveFromUser = moveItem.StrMove.Replace(" ", "").Split(".").Length > 1 ? moveItem.StrMove.Replace(" ", "").Split(".")[1] : moveItem.StrMove.Replace(" ", "").Split(".")[0];
+            string moveFromLoadedPgn = MoveList[MoveCount].StrMove.Replace(" ", "").Split(".").Length > 1 ? MoveList[MoveCount].StrMove.Replace(" ", "").Split(".")[1] : MoveList[MoveCount].StrMove.Replace(" ", "").Split(".")[0];
+
+            if (moveFromUser == moveFromLoadedPgn)
+            {
+                isDifferentMoves = false;
+            } 
+            else if (moveFromUser.Length == 3 && moveFromLoadedPgn.Length == 4)
+            {
+                if (moveFromUser[0] == moveFromLoadedPgn[0] && moveFromUser[1] == moveFromLoadedPgn[2] && moveFromUser[2] == moveFromLoadedPgn[3])
+                {
+                    isDifferentMoves = false;
+                }
+            }
+
             if (_isBranching)
             {
                 // the move is in the sub-branch
@@ -1653,7 +1667,9 @@ namespace GeminiChessAnalysis.ViewModels
                     CreateSnapshotForPieces();
                 }
             }
-            else if (MoveCount < MoveList.Count && moveItem.StrMove.Replace(" ","") != MoveList[MoveCount].StrMove.Replace(" ",""))
+            else if (MoveCount < MoveList.Count 
+                    && isDifferentMoves
+                    )
             {
                 for (int i = 0; i < MoveListSub.Count; i++)
                 {
@@ -2707,6 +2723,8 @@ namespace GeminiChessAnalysis.ViewModels
 
         public void PreviousMove()
         {
+
+
             if (MoveCount > 0)
             {
                 MoveCount--;
@@ -2739,12 +2757,9 @@ namespace GeminiChessAnalysis.ViewModels
                 _currentPiece = GetChessPiece(_currentCell);
                 _currentPiece.ImageVisible = true;
 
-                Device.BeginInvokeOnMainThread(() =>
-                {
-                    MoveCurrentPieceTo((int)points[1].Y, (int)points[1].X, true);
-                     _currentCell.ImageVisible = false;
-                    _currentCell = null;
-                });
+                MoveCurrentPieceTo((int)points[1].Y, (int)points[1].X, true);
+                    _currentCell.ImageVisible = false;
+                _currentCell = null;
 
             }
         }

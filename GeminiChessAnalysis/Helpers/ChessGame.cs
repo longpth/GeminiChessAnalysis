@@ -132,15 +132,15 @@ namespace GeminiChessAnalysis.Helpers
                 int disambiguationFile = -1;
                 int disambiguationRank = -1;
 
-                if (move.Length == 4)
+                if (move.Length == 3)
                 {
-                    if (char.IsLetter(move[1]))
+                    if (char.IsLetter(move[0]))
                     {
-                        disambiguationFile = move[1] - 'a';
+                        disambiguationFile = move[0] - 'a';
                     }
-                    else if (char.IsDigit(move[1]))
+                    else if (char.IsDigit(move[0]))
                     {
-                        disambiguationRank = 8 - (move[1] - '0');
+                        disambiguationRank = 8 - (move[0] - '0');
                     }
                 }
 

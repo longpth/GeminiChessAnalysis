@@ -49,7 +49,7 @@ namespace GeminiChessAnalysis.Views
             }
             else
             {
-                string[] moveInfo = message.Split(':');
+                string[] moveInfo = message.Split(',');
                 if (moveInfo[0] == "MoveCount")
                 {
                     int moveIndex = int.Parse(moveInfo[1]) - 1;

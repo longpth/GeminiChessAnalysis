@@ -533,6 +533,9 @@ namespace GeminiChessAnalysis.ViewModels
 
             Point? startPosition = null;
             Point? endPosition = null;
+            Point? additionalPieceStartPosition = null;
+            Point? additionalPieceEndPosition = null;
+            int kingIdx = 0;
 
             // Iterate through the boards to find the start and end positions of the move
             for (int row = 0; row < initialBoard.Count; row++)
@@ -547,7 +550,18 @@ namespace GeminiChessAnalysis.ViewModels
                                                  (initialPiece.Color != currentPiece.Color)) &&
                         initialPiece.Color == (isWhiteTurn ? EnumPieceColor.White : EnumPieceColor.Black))
                     {
-                        startPosition = new Point(col, row);
+                        if (startPosition == null)
+                        {
+                            startPosition = new Point(col, row);
+                        }
+                        else
+                        {
+                            if(initialPiece.Type == EnumPieceType.King)
+                            {
+                                kingIdx = 1;
+                            }
+                            additionalPieceStartPosition = new Point(col, row);
+                        }
                     }
 
                     // Piece moved to this position
@@ -555,11 +569,33 @@ namespace GeminiChessAnalysis.ViewModels
                                                  (initialPiece.Color != currentPiece.Color)) &&
                         currentPiece.Color == (isWhiteTurn ? EnumPieceColor.White : EnumPieceColor.Black))
                     {
-                        endPosition = new Point(col, row);
-                        break; // Assuming only one piece is moved at a time, break here
+                        if (endPosition == null)
+                        {
+                            endPosition = new Point(col, row);
+                        }
+                        else
+                        {
+                            additionalPieceEndPosition = new Point(col, row);
+                        }
                     }
                 }
                 if (startPosition.HasValue && endPosition.HasValue) break; // Break outer loop if both positions are found
+            }
+
+            // Check for castling
+            if (additionalPieceStartPosition.HasValue && additionalPieceEndPosition.HasValue)
+            {
+                // Assuming castling occurred, return the king's start and end positions
+                // This assumes the king moves two spaces during castling
+                if (kingIdx==0)
+                {
+                    return new List<Point> { startPosition.Value, additionalPieceEndPosition.Value };
+                }
+                else
+                {
+                    // If the king did not move two spaces, assume the rook moved and return its positions
+                    return new List<Point> { additionalPieceStartPosition.Value, endPosition.Value };
+                }
             }
 
             // If a move was found, return the start and end positions
@@ -2509,13 +2545,6 @@ namespace GeminiChessAnalysis.ViewModels
                 FlipPieceSnapshotArray(_queensSnapshot[i]);
                 FlipPieceSnapshotArray(_kingsSnapshot[i]);
 
-                FlipPieceSnapshotArray(_pawnsSnapshotSub[i]);
-                FlipPieceSnapshotArray(_rooksSnapshotSub[i]);
-                FlipPieceSnapshotArray(_knightsSnapshotSub[i]);
-                FlipPieceSnapshotArray(_bishopsSnapshotSub[i]);
-                FlipPieceSnapshotArray(_queensSnapshotSub[i]);
-                FlipPieceSnapshotArray(_kingsSnapshotSub[i]);
-
                 for (int j = 0; j < Size; j++)
                 {
                     for(int k=0; k<Size; k++)
@@ -2525,6 +2554,29 @@ namespace GeminiChessAnalysis.ViewModels
                     }
                 }
             }
+
+            int m = 0;
+            foreach (var entry in _snapShotSubs)
+            {
+                FlipPieceSnapshotArray(_pawnsSnapshotSub[m]);
+                FlipPieceSnapshotArray(_rooksSnapshotSub[m]);
+                FlipPieceSnapshotArray(_knightsSnapshotSub[m]);
+                FlipPieceSnapshotArray(_bishopsSnapshotSub[m]);
+                FlipPieceSnapshotArray(_queensSnapshotSub[m]);
+                FlipPieceSnapshotArray(_kingsSnapshotSub[m]);
+                int key = entry.Key;
+                List<ObservableCollection<Piece>> value = entry.Value;
+                for (int i = 0; i < value.Count; i++)
+                {
+                    for (int j = 0; j < value[i].Count; j++)
+                    {
+                        value[i][j].RowIdx = 7 - value[i][j].RowIdx;
+                        value[i][j].ColIdx = 7 - value[i][j].ColIdx;
+                    }
+                }
+                m++;
+            }
+
         }
         #endregion
 

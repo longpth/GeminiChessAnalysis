@@ -2480,7 +2480,7 @@ namespace GeminiChessAnalysis.ViewModels
                 return;
             }
 
-            _animateTime = 200;
+            _animateTime = 100;
 
             // Restore the state of each piece array from its snapshot
             MovePieces(_kings, kingsSnapshot[index]);
@@ -2600,6 +2600,8 @@ namespace GeminiChessAnalysis.ViewModels
                             RowIdx = 7 - pieces[i,j].RowIdx,
                             ColIdx = 7 - pieces[i,j].ColIdx,
                             IsAlive = pieces[i, j].IsAlive,
+                            HasNotMoved = pieces[i, j].HasNotMoved,
+                            ImagePath = pieces[i, j].ImagePath
                             // Continue copying or transforming other necessary properties
                         };
                     }
@@ -2718,7 +2720,7 @@ namespace GeminiChessAnalysis.ViewModels
         /// </remarks>
         public void OnPieceTap(Piece cell)
         {
-            _animateTime = 200;
+            _animateTime = 100;
             if (_currentCell == null || (_currentCell.Color == cell.Color) ) // first tab, select the piece
             {
                 if (cell.Type != EnumPieceType.None &&

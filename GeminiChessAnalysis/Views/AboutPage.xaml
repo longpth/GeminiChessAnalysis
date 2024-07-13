@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GeminiChessAnalysis.Views.AboutPage"
+             Title="About">
+    <ContentPage.Content>
+        <StackLayout Padding="10">
+            <Label Text="About Gemini Chess" FontSize="Large" FontAttributes="Bold" />
+            <Label Text="Gemini Chess App" FontSize="Medium" />
+            <Label Text="This app uses the Stockfish 16 engine to evaluate moves and suggest the best move." />
+            <Label Text="We use the Google Gemini API to get comments about the moves and the evaluations." />
+            <Label Text="For more information, visit our YouTube channel and website:" />
+            <Label Text="YouTube: https://www.youtube.com/@roboticslearner" TextColor="Blue" />
+            <Label Text="Website: https://www.roboticslearner.com" TextColor="Blue" />
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>

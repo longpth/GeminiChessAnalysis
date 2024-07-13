@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace GeminiChessAnalysis.Helpers
 {
@@ -35,6 +36,88 @@ namespace GeminiChessAnalysis.Helpers
                       .Where(x => !x.Contains("."))
                       .ToList();
         }
+
+        public static bool IsValidFEN(string fen)
+        {
+            // Basic FEN structure
+            string[] fields = fen.Split();
+            if (fields.Length != 6)
+            {
+                return false;
+            }
+
+            string piecePlacement = fields[0];
+            string activeColor = fields[1];
+            string castling = fields[2];
+            string enPassant = fields[3];
+            string halfmoveClock = fields[4];
+            string fullmoveNumber = fields[5];
+
+            // Validate piece placement
+            string[] rows = piecePlacement.Split('/');
+            if (rows.Length != 8)
+            {
+                return false;
+            }
+
+            foreach (string row in rows)
+            {
+                int count = 0;
+                foreach (char ch in row)
+                {
+                    if (char.IsDigit(ch))
+                    {
+                        count += ch - '0';
+                    }
+                    else if ("prnbqkPRNBQK".IndexOf(ch) >= 0)
+                    {
+                        count++;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (count != 8)
+                {
+                    return false;
+                }
+            }
+
+            // Validate active color
+            if (activeColor != "w" && activeColor != "b")
+            {
+                return false;
+            }
+
+            // Validate castling availability
+            if (!Regex.IsMatch(castling, "^[KQkq-]+$"))
+            {
+                return false;
+            }
+
+            // Validate en passant target square
+            if (enPassant != "-" && !Regex.IsMatch(enPassant, "^[a-h][36]$"))
+            {
+                return false;
+            }
+
+            // Validate halfmove clock
+            if (!int.TryParse(halfmoveClock, out int halfmoveClockValue) || halfmoveClockValue < 0)
+            {
+                return false;
+            }
+
+            // Validate fullmove number
+            if (!int.TryParse(fullmoveNumber, out int fullmoveNumberValue) || fullmoveNumberValue <= 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
     }
 
     public class ChessBoard

@@ -27,7 +27,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
-                <!--<ColumnDefinition Width="*" />-->
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <ImageButton Source="button_backward.png"
@@ -46,13 +46,19 @@
                 <Frame.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding NewGameCommand}" NumberOfTapsRequired="1" />
                 </Frame.GestureRecognizers>
-                <Label Text="New" HorizontalOptions="Center" VerticalOptions="CenterAndExpand" TextColor="Green" FontSize="Medium" />
+                <Label Text="New" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
             </Frame>
             <Frame Grid.Column="3" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False" HeightRequest="20">
                 <Frame.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding FlipSideCommand}" NumberOfTapsRequired="1" />
                 </Frame.GestureRecognizers>
-                <Label Text="Flip Board" HorizontalOptions="Center" VerticalOptions="CenterAndExpand" TextColor="Green" FontSize="Medium" />
+                <Label Text="Flip" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
+            </Frame>
+            <Frame Grid.Column="4" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False" HeightRequest="20">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding LoadFen}" NumberOfTapsRequired="1" />
+                </Frame.GestureRecognizers>
+                <Label Text="Load" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
             </Frame>
             <!--<Button Text="Flip" Command="{Binding FlipSideCommand}" Grid.Column="3" Margin="5,0" />-->
         </Grid>

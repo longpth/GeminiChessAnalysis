@@ -16,12 +16,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Views\FenImportPage.xaml.cs">
+      <DependentUpon>FenImportPage.xaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\PromotionPage.xaml.cs">
       <DependentUpon>PromotionPage.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Views\FenImportPage.xaml">
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+    </EmbeddedResource>
     <EmbeddedResource Update="Views\PromotionPage.xaml">
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>

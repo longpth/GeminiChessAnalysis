@@ -39,6 +39,10 @@ namespace GeminiChessAnalysis.Helpers
 
         public static bool IsValidFEN(string fen)
         {
+            if (fen == null)
+            {
+                return false;
+            }
             // Basic FEN structure
             string[] fields = fen.Split();
             if (fields.Length != 6)

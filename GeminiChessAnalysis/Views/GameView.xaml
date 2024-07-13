@@ -56,7 +56,7 @@
             </Frame>
             <Frame Grid.Column="4" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False" HeightRequest="20">
                 <Frame.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding LoadFen}" NumberOfTapsRequired="1" />
+                    <TapGestureRecognizer Command="{Binding LoadFenCommand}" NumberOfTapsRequired="1" />
                 </Frame.GestureRecognizers>
                 <Label Text="Load" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
             </Frame>

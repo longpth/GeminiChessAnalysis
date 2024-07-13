@@ -14,6 +14,7 @@ using System.Windows.Input;
 using Xamarin.Forms;
 using Xamarin.Forms.PlatformConfiguration.iOSSpecific;
 using Xamarin.Forms.Shapes;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace GeminiChessAnalysis.ViewModels
 {
@@ -2800,6 +2801,21 @@ namespace GeminiChessAnalysis.ViewModels
             }
 
         }
+
+        private async void OpenFenPage()
+        {
+            var fenPage = new FenImportPage(OnFenEntered);
+            await Xamarin.Forms.Application.Current.MainPage.Navigation.PushAsync(fenPage);
+        }
+
+        private void OnFenEntered(string fen)
+        {
+            if (ChessGame.IsValidFEN(fen))
+            {
+                ProcessImportFen(fen);
+            }
+        }
+
         #endregion
 
         #region public Commands
@@ -2994,6 +3010,9 @@ namespace GeminiChessAnalysis.ViewModels
 
         }
 
+        /// <summary>
+        /// Create backward move with a recorded move from the snapshots
+        /// </summary>
         public void PreviousMove()
         {
 
@@ -3007,6 +3026,9 @@ namespace GeminiChessAnalysis.ViewModels
             }
         }
 
+        /// <summary>
+        /// Create the forward move with a recorded move from the snapshots
+        /// </summary>
         public void NextMove()
         {
             int limitCounter = _isBranching ? _branchingMoveAtCount + _snapShotSubs.Count - 1 : _snapShots.Count - 1;
@@ -3035,6 +3057,14 @@ namespace GeminiChessAnalysis.ViewModels
                 _currentCell = null;
 
             }
+        }
+
+        /// <summary>
+        /// Open a load the fen string page to import the fen string
+        /// </summary>
+        public void LoadFen()
+        {
+            OpenFenPage();
         }
 
         /// <summary>

@@ -14,6 +14,7 @@ namespace GeminiChessAnalysis.ViewModels
         public ICommand FlipSideCommand { get; private set; }
         public ICommand PreviousMoveCommand { get; private set; }
         public ICommand NextMoveCommand { get; private set; }
+        public ICommand LoadFenCommand { get; private set; }
 
         public BoardViewModel BoardViewModel
         {
@@ -25,11 +26,12 @@ namespace GeminiChessAnalysis.ViewModels
 
         public GameViewModel()
         {
-            NewGameCommand = new RelayCommand(StartNewGame);
-            FlipSideCommand = new RelayCommand(FlipSide);
+            NewGameCommand      = new RelayCommand(StartNewGame);
+            FlipSideCommand     = new RelayCommand(FlipSide);
             PreviousMoveCommand = new RelayCommand(PreviousMove);
-            NextMoveCommand = new RelayCommand(NextMove);
-            _boardViewModel = BoardViewModel.Instance;
+            NextMoveCommand     = new RelayCommand(NextMove);
+            LoadFenCommand      = new RelayCommand(LoadFen);
+            _boardViewModel     = BoardViewModel.Instance;
 
             //string initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             //string pgn = "1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd8 4. Nf3";
@@ -65,6 +67,14 @@ namespace GeminiChessAnalysis.ViewModels
             if (_boardViewModel != null)
             {
                 _boardViewModel.NextMove();
+            }
+        }
+
+        private void LoadFen(object parameter)
+        {
+            if (_boardViewModel != null)
+            {
+                _boardViewModel.LoadFen();
             }
         }
     }

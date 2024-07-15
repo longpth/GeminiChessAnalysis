@@ -40,7 +40,7 @@ namespace GeminiChessAnalysis.Views
             {
                 Device.BeginInvokeOnMainThread(() =>
                 {
-                    var delayTask = Task.Delay(500); // Create a delay task
+                    var delayTask = Task.Delay(100); // Create a delay task
                     delayTask.ContinueWith(t =>
                     {
                         moveScrollView.ScrollToAsync(0, 0, true); // Scrolls to the top
@@ -55,7 +55,7 @@ namespace GeminiChessAnalysis.Views
                     int moveIndex = int.Parse(moveInfo[1]) - 1;
                     Device.BeginInvokeOnMainThread(() =>
                     {
-                        var delayTask = Task.Delay(500); // Create a delay task
+                        var delayTask = Task.Delay(100); // Create a delay task
                         delayTask.ContinueWith(t =>
                         {
                             moveScrollView.ScrollToAsync(moveStackLayout.Children.ElementAt(moveIndex), ScrollToPosition.MakeVisible, true); // Scrolls to the top

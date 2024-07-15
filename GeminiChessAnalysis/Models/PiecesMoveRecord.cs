@@ -90,6 +90,29 @@ namespace GeminiChessAnalysis.Models
             }
         }
 
+        public static EnumPieceType PieceString2Type(string pieceTypeStr)
+        {
+            string pieceTypeStrUpper = pieceTypeStr.ToUpper();
+
+            switch (pieceTypeStrUpper)
+            {
+                case "":
+                    return EnumPieceType.Pawn;
+                case "N":
+                    return EnumPieceType.Knight;
+                case "B":
+                    return EnumPieceType.Bishop;
+                case "R":
+                    return EnumPieceType.Rook;
+                case "Q":
+                    return EnumPieceType.Queen;
+                case "K":
+                    return EnumPieceType.King;
+                default:
+                    return EnumPieceType.None;
+            }
+        }
+
         public static string PieceType2StringFullName(EnumPieceType pieceType)
         {
             switch (pieceType)

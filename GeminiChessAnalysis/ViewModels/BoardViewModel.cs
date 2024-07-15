@@ -1682,51 +1682,87 @@ namespace GeminiChessAnalysis.ViewModels
                 // Handle pawn promotion
                 if (isPromotion)
                 {
-                    Piece pawn = new Piece();
-                    pawn.Copy(_currentCell);
-                    ShowPromotionView(pawn,  selectedPieceType =>
+                    if (force == false)
                     {
-                        // Update moveItem.StrMove based on the selected piece type
-                        string promotionNotation = "";
-                        string imagePath = "";
+                        Piece pawn = new Piece();
+                        pawn.Copy(_currentCell);
+                        ShowPromotionView(pawn, selectedPieceType =>
+                        {
+                            // Update moveItem.StrMove based on the selected piece type
+                            string promotionNotation = "";
+                            string imagePath = "";
+                            switch (selectedPieceType)
+                            {
+                                case EnumPieceType.Queen:
+                                    promotionNotation = "=Q";
+                                    imagePath = pawn.Color == EnumPieceColor.White ? "white_queen.png" : "black_queen.png";
+                                    break;
+                                case EnumPieceType.Rook:
+                                    promotionNotation = "=R";
+                                    imagePath = pawn.Color == EnumPieceColor.White ? "white_rook.png" : "black_rook.png";
+                                    break;
+                                case EnumPieceType.Bishop:
+                                    promotionNotation = "=B";
+                                    imagePath = pawn.Color == EnumPieceColor.White ? "white_bishop.png" : "black_bishop.png";
+                                    break;
+                                case EnumPieceType.Knight:
+                                    promotionNotation = "=N";
+                                    imagePath = pawn.Color == EnumPieceColor.White ? "white_knight.png" : "black_knight.png";
+                                    break;
+                                default:
+                                    throw new InvalidOperationException("Invalid piece type for promotion.");
+                            }
+
+                            // Replace the pawn with the selected piece type
+                            Piece promotedPiece = new Piece(selectedPieceType, pawn.Color) { RowIdx = pawn.RowIdx, ColIdx = pawn.ColIdx, ImagePath = imagePath, IsPromotion = true, Index = pawn.Index };
+
+                            // Append the promotion notation to the move string
+                            moveItem.StrMove += promotionNotation;
+                            SetPieceAt(row, col, promotedPiece);
+
+                            RecordMovePieceByTouch(moveItem);
+
+                            MoveIsValid = true;
+                            IsWhiteTurn = !IsWhiteTurn; // Switch turns after a valid move
+
+                            MoveCount++;
+                        });
+                        SetPieceAt(currentRow, currentCol, pieceNone);
+                        return;
+                    }
+                    else
+                    {
+                        string promoteTo = MoveList[MoveCount].StrMove.Split('=')[1];
+
+                        moveItem.StrMove = MoveList[MoveCount].StrMoveRaw;
+
+                        EnumPieceType selectedPieceType = PiecesMoveRecord.PieceString2Type(promoteTo);
+
+                        string imagePath;
+
                         switch (selectedPieceType)
                         {
                             case EnumPieceType.Queen:
-                                promotionNotation = "=Q";
-                                imagePath = pawn.Color == EnumPieceColor.White ? "white_queen.png" : "black_queen.png";
+                                imagePath = _currentCell.Color == EnumPieceColor.White ? "white_queen.png" : "black_queen.png";
                                 break;
                             case EnumPieceType.Rook:
-                                promotionNotation = "=R";
-                                imagePath = pawn.Color == EnumPieceColor.White ? "white_rook.png" : "black_rook.png";
+                                imagePath = _currentCell.Color == EnumPieceColor.White ? "white_rook.png" : "black_rook.png";
                                 break;
                             case EnumPieceType.Bishop:
-                                promotionNotation = "=B";
-                                imagePath = pawn.Color == EnumPieceColor.White ? "white_bishop.png" : "black_bishop.png";
+                                imagePath = _currentCell.Color == EnumPieceColor.White ? "white_bishop.png" : "black_bishop.png";
                                 break;
                             case EnumPieceType.Knight:
-                                promotionNotation = "=N";
-                                imagePath = pawn.Color == EnumPieceColor.White ? "white_knight.png" : "black_knight.png";
+                                imagePath = _currentCell.Color == EnumPieceColor.White ? "white_knight.png" : "black_knight.png";
                                 break;
                             default:
                                 throw new InvalidOperationException("Invalid piece type for promotion.");
                         }
 
                         // Replace the pawn with the selected piece type
-                        Piece promotedPiece = new Piece(selectedPieceType, pawn.Color) { RowIdx = pawn.RowIdx, ColIdx = pawn.ColIdx, ImagePath = imagePath, IsPromotion = true, Index = pawn.Index };
+                        Piece promotedPiece = new Piece(selectedPieceType, _currentCell.Color) { RowIdx = _currentCell.RowIdx, ColIdx = _currentCell.ColIdx, ImagePath = imagePath, IsPromotion = true, Index = _currentCell.Index };
 
-                        // Append the promotion notation to the move string
-                        moveItem.StrMove += promotionNotation;
                         SetPieceAt(row, col, promotedPiece);
-
-                        RecordMovePieceByTouch(moveItem);
-
-                        MoveIsValid = true;
-                        IsWhiteTurn = !IsWhiteTurn; // Switch turns after a valid move
-
-                        MoveCount++;
-                    });
-                    SetPieceAt(currentRow, currentCol, pieceNone);
-                    return;
+                    }
                 }
                 else
                 {
@@ -3053,7 +3089,7 @@ namespace GeminiChessAnalysis.ViewModels
                 _currentPiece.ImageVisible = true;
 
                 MoveCurrentPieceTo((int)points[1].Y, (int)points[1].X, true);
-                    _currentCell.ImageVisible = false;
+                _currentCell.ImageVisible = false;
                 _currentCell = null;
 
             }

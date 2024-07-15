@@ -178,17 +178,26 @@ namespace GeminiChessAnalysis.Helpers
                 int targetFile, targetRank;
                 bool isCapture = move.Contains("x");
 
+                // Check for pawn promotion
+                char promotionPiece = '\0';
+                if (move.Contains("="))
+                {
+                    int promotionIndex = move.IndexOf('=');
+                    promotionPiece = move[promotionIndex + 1];
+                    move = move.Substring(0, promotionIndex); // Remove promotion part from move string
+                }
+
                 // Check for captures and adjust the move string accordingly
                 if (isCapture)
                 {
                     int xIndex = move.IndexOf('x');
-                    // If the piece type is specified (e.g., "Qxd5"), extract it
                     if (char.IsUpper(move[0]) && xIndex == 1)
                     {
                         pieceType = move[0];
                         move = move.Substring(2); // Remove piece type and 'x' from move string
                     }
                     else if (char.IsLower(move[0]) && xIndex == 1) // For pawn captures like "exd5"
+
                     {
                         pieceType = currentTurn == 'w' ? 'P' : 'p';
                         move = move.Substring(2); // Adjust for pawn captures to only leave the target square
@@ -243,13 +252,20 @@ namespace GeminiChessAnalysis.Helpers
                         // Execute the move
                         board[targetRank, targetFile] = board[startRank, startFile];
                         board[startRank, startFile] = '\0';
+
+                        // Handle pawn promotion
+                        if (promotionPiece != '\0' && (targetRank == 0 || targetRank == 7))
+                        {
+                            board[targetRank, targetFile] = currentTurn == 'w' ? char.ToUpper(promotionPiece) : char.ToLower(promotionPiece);
+                        }
+
                         break; // Assuming only one valid move is possible
                     }
                 }
             }
 
             // Toggle the turn at the end of the move
-            currentTurn = currentTurn == 'w'? 'b' : 'w';
+            currentTurn = currentTurn == 'w' ? 'b' : 'w';
             fullMoveCounter++;
         }
 

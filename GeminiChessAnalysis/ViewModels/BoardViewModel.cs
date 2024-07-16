@@ -520,19 +520,19 @@ namespace GeminiChessAnalysis.ViewModels
         private async void ProcessImportFen(string fenText)
         {
             // Reset the Board First
-            await NewBoardSetup();
+            NewBoardSetupSync();
+
+            InvalidatePieces(_kings);
+            InvalidatePieces(_queens);
+            InvalidatePieces(_rooks);
+            InvalidatePieces(_bishops);
+            InvalidatePieces(_knights);
+            InvalidatePieces(_pawns);
+
+            var fenBoard = CreateBoardCellsFromFen(fenText, _whiteSide == EnumWhiteSide.Bottom);
 
             Device.BeginInvokeOnMainThread(() =>
             {
-                InvalidatePieces(_kings);
-                InvalidatePieces(_queens);
-                InvalidatePieces(_rooks);
-                InvalidatePieces(_bishops);
-                InvalidatePieces(_knights);
-                InvalidatePieces(_pawns);
-
-                var fenBoard = CreateBoardCellsFromFen(fenText, _whiteSide == EnumWhiteSide.Bottom);
-
                 for (int row = 0; row < fenBoard.Count; row++)
                 {
                     for (int col = 0; col < fenBoard[row].Count; col++)
@@ -3188,6 +3188,61 @@ namespace GeminiChessAnalysis.ViewModels
 
                 CreateSnapshotForPieces();
             });
+        }
+
+        /// <summary>
+        /// Reset board layout, moves, move snapshots, ... to start a new game
+        /// </summary>
+        public void NewBoardSetupSync()
+        {
+            AskStockFishToStartNewGame();
+
+            // Flip to the original side before starting a new game
+            if (_whiteSide == EnumWhiteSide.Top)
+            {
+                FlipBoard();
+            }
+
+            _isBranching = false;
+            RestoreFromSnapshot(0);
+            _fenString = null;
+            _bestMove = null;
+            _stockfishEvaluationResult = 0.0;
+            _stockfishEvaluation = "";
+            MoveCount = 0;
+            WhiteWinPercentage = 0.0;
+            BlackWinPercentage = 0.0;
+            GeminiStringResult = "";
+            // Remove all moves after the current move from MoveList and SnapShots
+            MoveList.Clear();
+            MoveListSub.Clear();
+            _snapShots.Clear();
+            _snapShotSubs.Clear();
+            _soundSnapShots.Clear();
+            _soundSubSnapShots.Clear();
+            ClearSnapshotsForPieces();
+
+            for (int i = 0; i < BoardCells.Count; i++)
+            {
+                for (int j = 0; j < BoardCells[i].Count; j++)
+                {
+                    var piece = BoardCells[i][j];
+                    // White at the bottom
+                    piece.TopLeftNumber = (j == 0) ? (Size - i).ToString() : "";
+                    piece.BottomRightLetter = (i == Size - 1) ? ((char)('a' + j)).ToString() : "";
+                    piece.IsTopLeftNumberVisible = (j == 0);
+                    piece.IsBottomRightLetterVisible = (i == Size - 1);
+
+                    // Update the piece in the ObservableCollection if necessary
+                    BoardCells[i][j] = piece;
+                }
+            }
+
+            IsWhiteTurn = true;
+
+            _snapShots.Add(CreateSnapshot());
+
+            CreateSnapshotForPieces();
         }
 
         public static BoardViewModel Instance

@@ -46,20 +46,24 @@
                 <Frame.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding NewGameCommand}" NumberOfTapsRequired="1" />
                 </Frame.GestureRecognizers>
-                <Label Text="New" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
+                <Label Text="New" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Green" FontSize="Medium" />
             </Frame>
             <Frame Grid.Column="3" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False" HeightRequest="20">
                 <Frame.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding FlipSideCommand}" NumberOfTapsRequired="1" />
                 </Frame.GestureRecognizers>
-                <Label Text="Flip" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
+                <Label Text="Flip" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Green" FontSize="Medium" />
             </Frame>
             <Frame Grid.Column="4" BackgroundColor="Transparent" Padding="0" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" CornerRadius="5" HasShadow="False" HeightRequest="20">
                 <Frame.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding LoadFenCommand}" NumberOfTapsRequired="1" />
                 </Frame.GestureRecognizers>
-                <Label Text="Load" HorizontalOptions="Center" VerticalOptions="StartAndExpand" TextColor="Green" FontSize="Medium" />
+                <Label Text="Load" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Green" FontSize="Medium" />
             </Frame>
+            <!--<StackLayout Orientation="Horizontal" VerticalOptions="Center" Grid.Column="5" BackgroundColor="DeepSkyBlue">
+                <CheckBox x:Name="VoiceCheckBox" VerticalOptions="StartAndExpand" Color="Green" IsChecked="{Binding BoardViewModel.IsUsedVoice}"/>
+                <Label Text="Voice" VerticalOptions ="Center"  TextColor="Green"></Label>
+            </StackLayout>-->
             <!--<Button Text="Flip" Command="{Binding FlipSideCommand}" Grid.Column="3" Margin="5,0" />-->
         </Grid>
         <!--<Label Text="{Binding BoardViewModel.FenString}" HorizontalOptions="Center" VerticalOptions="Center" />

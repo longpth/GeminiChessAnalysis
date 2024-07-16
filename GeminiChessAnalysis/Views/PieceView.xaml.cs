@@ -227,7 +227,7 @@ namespace GeminiChessAnalysis.Views
         {
             var translateRequest = (MovePixelWithTime)newValue;
             var control = (PieceView)bindable;
-            await control.TranslateTo(translateRequest.TranslateX, translateRequest.TranslateY, (uint)translateRequest.Duration.TotalMilliseconds, Easing.CubicOut);
+            await control.TranslateTo(translateRequest.TranslateX, translateRequest.TranslateY, (uint)translateRequest.Duration.TotalMilliseconds, Easing.Linear);
         }
     }
 }

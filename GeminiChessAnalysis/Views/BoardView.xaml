@@ -35,8 +35,13 @@
                     </BindableLayout.ItemTemplate>
                 </customviews:BindableStackLayout>
             </ScrollView>
-            <ScrollView Orientation="Horizontal" Grid.Column="1" VerticalOptions="FillAndExpand">
-                <customviews:BindableStackLayout Orientation="Horizontal" SelectedIndex="{Binding MoveIndexSub}" BindableLayout.ItemsSource="{Binding MoveListSub}" HeightRequest="20">
+            <ScrollView x:Name="moveScrollViewSub"  Orientation="Horizontal" Grid.Column="1" VerticalOptions="FillAndExpand">
+                <customviews:BindableStackLayout 
+                    x:Name="moveStackLayoutSub"
+                    Orientation="Horizontal" 
+                    SelectedIndex="{Binding MoveIndexSub}" 
+                    BindableLayout.ItemsSource="{Binding MoveListSub}" 
+                    HeightRequest="20">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate>
                             <customviews:ClickableLabel 

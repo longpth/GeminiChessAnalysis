@@ -1834,19 +1834,29 @@ namespace GeminiChessAnalysis.ViewModels
             }
             else if (MoveCount < MoveList.Count && moveItem.StrMove != MoveList[MoveCount].StrMove)
             {
-                for (int i = 0; i < MoveListSub.Count; i++)
-                {
-                    MoveListSub[i] = new MoveItem()
-                    {
-                        StrMove = MoveListSub[i].StrMove,
-                        MoveIndex = MoveListSub[i].MoveIndex,
-                        IsVisibleAndClickable = false
-                    };
-                }
-
                 _snapShotSubs.Clear();
                 _soundSubSnapShots.Clear();
                 ClearSnapshotsForPiecesSub();
+
+                for (int i = 0; i < MoveListSub.Count; i++)
+                {
+                    if (MoveListSub[i].IsVisibleAndClickable == true)
+                    {
+                        if (i < MoveList.Count)
+                        {
+                            MoveListSub[i] = new MoveItem()
+                            {
+                                StrMove = MoveList[i].StrMove,
+                                MoveIndex = MoveList[i].MoveIndex,
+                                IsVisibleAndClickable = false
+                            };
+                        }
+                        else
+                        {
+                            MoveListSub.RemoveAt(i);
+                        }
+                    }
+                }
 
                 _isBranching = true;
                 _branchingMoveAtCount = MoveCount;
@@ -1921,20 +1931,31 @@ namespace GeminiChessAnalysis.ViewModels
                     && isDifferentMoves
                     )
             {
-                for (int i = 0; i < MoveListSub.Count; i++)
-                {
-                    MoveListSub[i] = new MoveItem()
-                    {
-                        StrMove = MoveListSub[i].StrMove,
-                        MoveIndex = MoveListSub[i].MoveIndex,
-                        IsVisibleAndClickable = false
-                    };
-                }
-                
+
                 _snapShotSubs.Clear();
                 _soundSubSnapShots.Clear();
                 ClearSnapshotsForPiecesSub();
 
+                for (int i = 0; i < MoveListSub.Count; i++)
+                {
+                    if (MoveListSub[i].IsVisibleAndClickable == true)
+                    {
+                        if (i < MoveList.Count)
+                        {
+                            MoveListSub[i] = new MoveItem()
+                            {
+                                StrMove = MoveList[i].StrMove,
+                                MoveIndex = MoveList[i].MoveIndex,
+                                IsVisibleAndClickable = false
+                            };
+                        }
+                        else
+                        {
+                            MoveListSub.RemoveAt(i);
+                        }
+                    }
+                }
+                
                 _isBranching = true;
                 _branchingMoveAtCount = MoveCount;
                 // this is a sub-branch move
@@ -2466,6 +2487,7 @@ namespace GeminiChessAnalysis.ViewModels
                     Others.PlayAudioFile(_soundSnapShots[index]);
                 }
             }
+            InvisibleAllCircle();
         }
 
         private async Task AskStockFishCommandExecute()
@@ -3125,6 +3147,7 @@ namespace GeminiChessAnalysis.ViewModels
 
             Device.BeginInvokeOnMainThread(() =>
             {
+                _isBranching = false;
                 RestoreFromSnapshot(0);
                 _fenString = null;
                 _bestMove = null;
@@ -3138,6 +3161,9 @@ namespace GeminiChessAnalysis.ViewModels
                 MoveList.Clear();
                 MoveListSub.Clear();
                 _snapShots.Clear();
+                _snapShotSubs.Clear();
+                _soundSnapShots.Clear();
+                _soundSubSnapShots.Clear();
                 ClearSnapshotsForPieces();
 
                 for (int i = 0; i < BoardCells.Count; i++)

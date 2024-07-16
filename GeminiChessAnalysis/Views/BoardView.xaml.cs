@@ -204,9 +204,14 @@ namespace GeminiChessAnalysis.Views
             if (moveStackLayout.Children.Count > moveIndex && moveIndex >= 0)
             {
                 var targetItem = moveStackLayout.Children.ElementAt(moveIndex);
+                var targetItemSub = moveStackLayout.Children.ElementAt(moveIndex);
                 if (targetItem != null)
                 {
                     await moveScrollView.ScrollToAsync(targetItem, ScrollToPosition.MakeVisible, true);
+                }
+                if (targetItemSub != null)
+                {
+                    await moveScrollViewSub.ScrollToAsync(targetItemSub, ScrollToPosition.MakeVisible, true);
                 }
             }
         }

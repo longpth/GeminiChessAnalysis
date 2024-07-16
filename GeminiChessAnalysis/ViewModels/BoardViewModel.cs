@@ -59,6 +59,13 @@ namespace GeminiChessAnalysis.ViewModels
         private Piece[,] _bishops = new Piece[2, 2];
         private Piece[,] _pawns = new Piece[2,8];
 
+        private Piece[,] _kingsSnapshotInit = new Piece[1,2];
+        private Piece[,] _queensSnapshotInit = new Piece[1,2];
+        private Piece[,] _rooksSnapshotInit = new Piece[2,2];
+        private Piece[,] _knightsSnapshotInit = new Piece[2,2];
+        private Piece[,] _bishopsSnapshotInit = new Piece[2,2];
+        private Piece[,] _pawnsSnapshotInit = new Piece[2,8];
+
         private List<Piece[,]> _kingsSnapshot     = new List<Piece[,]>();
         private List<Piece[,]> _queensSnapshot    = new List<Piece[,]>();
         private List<Piece[,]> _rooksSnapshot     = new List<Piece[,]>();
@@ -74,6 +81,7 @@ namespace GeminiChessAnalysis.ViewModels
         private Dictionary<int, Piece[,]> _pawnsSnapshotSub   = new Dictionary<int, Piece[,]>();
 
         private string _moveSound;
+        private List<ObservableCollection<Piece>> _initialSnapShot;
         private List<List<ObservableCollection<Piece>>> _snapShots = new List<List<ObservableCollection<Piece>>>();
         private List<string> _soundSnapShots = new List<string>();
         private Dictionary<int, List<ObservableCollection<Piece>>> _snapShotSubs = new Dictionary<int, List<ObservableCollection<Piece>>>();
@@ -551,7 +559,11 @@ namespace GeminiChessAnalysis.ViewModels
                     }
                 }
 
+                _snapShots.Clear();
+                ClearSnapshotsForPieces();
+
                 _snapShots.Add(CreateSnapshot());
+
                 CreateSnapshotForPieces();
 
                 AskStockFishToStartNewGame();
@@ -897,6 +909,63 @@ namespace GeminiChessAnalysis.ViewModels
             OnPropertyChanged(nameof(ChessPiecesForDisplaying));
         }
 
+        private void InitializePieces()
+        {
+            // Copying _kingsSnapshot to _kingsSnapshotInit
+            for (int i = 0; i < _kingsSnapshotInit.GetLength(0); i++)
+            {
+                for (int j = 0; j < _kingsSnapshotInit.GetLength(1); j++)
+                {
+                    _kingsSnapshotInit[i, j] = _kingsSnapshot[0][i, j];
+                }
+            }
+
+            // Copying _queensSnapshot to _queensSnapshotInit
+            for (int i = 0; i < _queensSnapshotInit.GetLength(0); i++)
+            {
+                for (int j = 0; j < _queensSnapshotInit.GetLength(1); j++)
+                {
+                    _queensSnapshotInit[i, j] = _queensSnapshot[0][i, j];
+                }
+            }
+
+            // Copying _rooksSnapshot to _rooksSnapshotInit
+            for (int i = 0; i < _rooksSnapshotInit.GetLength(0); i++)
+            {
+                for (int j = 0; j < _rooksSnapshotInit.GetLength(1); j++)
+                {
+                    _rooksSnapshotInit[i, j] = _rooksSnapshot[0][i, j];
+                }
+            }
+
+            // Copying _knightsSnapshot to _knightsSnapshotInit
+            for (int i = 0; i < _knightsSnapshotInit.GetLength(0); i++)
+            {
+                for (int j = 0; j < _knightsSnapshotInit.GetLength(1); j++)
+                {
+                    _knightsSnapshotInit[i, j] = _knightsSnapshot[0][i, j];
+                }
+            }
+
+            // Copying _bishopsSnapshot to _bishopsSnapshotInit
+            for (int i = 0; i < _bishopsSnapshotInit.GetLength(0); i++)
+            {
+                for (int j = 0; j < _bishopsSnapshotInit.GetLength(1); j++)
+                {
+                    _bishopsSnapshotInit[i, j] = _bishopsSnapshot[0][i, j];
+                }
+            }
+
+            // Copying _pawnsSnapshot to _pawnsSnapshotInit
+            for (int i = 0; i < _pawnsSnapshotInit.GetLength(0); i++)
+            {
+                for (int j = 0; j < _pawnsSnapshotInit.GetLength(1); j++)
+                {
+                    _pawnsSnapshotInit[i, j] = _pawnsSnapshot[0][i, j];
+                }
+            }
+        }
+
         private double InitializeBoard()
         {
             ChessPiecesForDisplaying.Clear();
@@ -989,6 +1058,10 @@ namespace GeminiChessAnalysis.ViewModels
             CreateSnapshotForPieces();
 
             _snapShots.Add(CreateSnapshot());
+
+            _initialSnapShot = CreateSnapshot();
+
+            InitializePieces();
 
             return _kings[0, (int)EnumPieceColor.Black].ScreenWidth;
         }
@@ -2412,6 +2485,11 @@ namespace GeminiChessAnalysis.ViewModels
         {
             var snapshot = (index > _branchingMoveAtCount) && _isBranching ? _snapShotSubs[index] : _snapShots[index];
 
+            if (index == 0)
+            {
+                snapshot = _initialSnapShot;
+            }
+
             StringBuilder fenBuilder = new StringBuilder();
             int emptySquares = 0;
 
@@ -2497,46 +2575,54 @@ namespace GeminiChessAnalysis.ViewModels
                 return;
             }
 
-            // Assuming _fenString is already set
-            string output = AskStockFishAboutBestMove(_fenString);
-
-            var outputArr = output.Split(' ');
-            string bestMoveStr = "";
-
-            Debug.WriteLine($"Best Move {output} from Stockfish");
-
-            if (outputArr.Length >= 2)
+            try
             {
-                bestMoveStr = outputArr[1].Replace("\n", "");
-            }
 
-            if (bestMoveStr != "")
-            {
-                BestMove = bestMoveStr;
+                // Assuming _fenString is already set
+                string output = AskStockFishAboutBestMove(_fenString);
 
-                // simulate a next move as the bestmove from Stockfish
-                AskStockFishAboutBestMove(_fenString + $" moves {bestMoveStr}");
+                var outputArr = output.Split(' ');
+                string bestMoveStr = "";
 
-                // evaluate the Board after the best move by stockfish
-                var outputEval = AskStockFishEvaluateBoard();
+                Debug.WriteLine($"Best Move {output} from Stockfish");
 
-                var outputEvalArr = outputEval.Split(' ');
-
-                //string StockfishEvaluationPre = StockfishEvaluation;
-
-                if (outputEvalArr.Length >= 9)
+                if (outputArr.Length >= 2)
                 {
-                    bool canConvertToDouble = double.TryParse(outputEvalArr[8], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result);
-                    if (canConvertToDouble)
+                    bestMoveStr = outputArr[1].Replace("\n", "");
+                }
+
+                if (bestMoveStr != "")
+                {
+                    BestMove = bestMoveStr;
+
+                    // simulate a next move as the bestmove from Stockfish
+                    AskStockFishAboutBestMove(_fenString + $" moves {bestMoveStr}");
+
+                    // evaluate the Board after the best move by stockfish
+                    var outputEval = AskStockFishEvaluateBoard();
+
+                    var outputEvalArr = outputEval.Split(' ');
+
+                    //string StockfishEvaluationPre = StockfishEvaluation;
+
+                    if (outputEvalArr.Length >= 9)
                     {
-                        _stockfishEvaluationResult = result;
-                        StockfishEvaluation = Utils.CentipawnToWinProbability(result).ToString();
-                        if (_isNewMove)
+                        bool canConvertToDouble = double.TryParse(outputEvalArr[8], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result);
+                        if (canConvertToDouble)
                         {
-                            _isNewMove = false;
+                            _stockfishEvaluationResult = result;
+                            StockfishEvaluation = Utils.CentipawnToWinProbability(result).ToString();
+                            if (_isNewMove)
+                            {
+                                _isNewMove = false;
+                            }
                         }
                     }
                 }
+            } 
+            catch
+            {
+                Debug.WriteLine("Stockfish exception !");
             }
 
         }
@@ -2621,7 +2707,17 @@ namespace GeminiChessAnalysis.ViewModels
         private void RestorePiecesFromSnapshotAt(int index)
         {
             _animateTime = 100;
-            if (_isBranching == false)
+            if(index==0)
+            {
+                // Restore the state of each piece array from its snapshot
+                MovePieces(_kings, _kingsSnapshotInit);
+                MovePieces(_queens, _queensSnapshotInit);
+                MovePieces(_rooks, _rooksSnapshotInit);
+                MovePieces(_knights, _knightsSnapshotInit);
+                MovePieces(_bishops, _bishopsSnapshotInit);
+                MovePieces(_pawns, _pawnsSnapshotInit);
+            }
+            else if (_isBranching == false)
             {
                 // Ensure the index is within the bounds of the snapshot lists
                 if (index < 0 || index >= _kingsSnapshot.Count || index >= _queensSnapshot.Count ||
@@ -3187,6 +3283,8 @@ namespace GeminiChessAnalysis.ViewModels
                 _snapShots.Add(CreateSnapshot());
 
                 CreateSnapshotForPieces();
+
+
             });
         }
 

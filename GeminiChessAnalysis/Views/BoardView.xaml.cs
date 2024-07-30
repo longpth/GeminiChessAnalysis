@@ -11,6 +11,7 @@ using Point = Xamarin.Forms.Point;
 using Color = Xamarin.Forms.Color;
 using System.ComponentModel;
 using GeminiChessAnalysis.Services;
+using System.Diagnostics;
 
 namespace GeminiChessAnalysis.Views
 {
@@ -200,19 +201,27 @@ namespace GeminiChessAnalysis.Views
 
             int moveIndex = viewModel.MoveIndex; // Get the MoveIndex from your ViewModel
 
-            // Ensure the index is within the bounds of the children collection
-            if (moveStackLayout.Children.Count > moveIndex && moveIndex >= 0)
+            try
             {
-                var targetItem = moveStackLayout.Children.ElementAt(moveIndex);
-                var targetItemSub = moveStackLayout.Children.ElementAt(moveIndex);
-                if (targetItem != null)
+
+                // Ensure the index is within the bounds of the children collection
+                if (moveStackLayout.Children.Count > moveIndex && moveIndex >= 0)
                 {
-                    await moveScrollView.ScrollToAsync(targetItem, ScrollToPosition.MakeVisible, true);
+                    var targetItem = moveStackLayout.Children.ElementAt(moveIndex);
+                    var targetItemSub = moveStackLayout.Children.ElementAt(moveIndex);
+                    if (targetItem != null)
+                    {
+                        await moveScrollView.ScrollToAsync(targetItem, ScrollToPosition.MakeVisible, true);
+                    }
+                    if (targetItemSub != null)
+                    {
+                        await moveScrollViewSub.ScrollToAsync(targetItemSub, ScrollToPosition.MakeVisible, true);
+                    }
                 }
-                if (targetItemSub != null)
-                {
-                    await moveScrollViewSub.ScrollToAsync(targetItemSub, ScrollToPosition.MakeVisible, true);
-                }
+            }
+            catch (Exception ex) 
+            { 
+                Debug.WriteLine(ex.Message);
             }
         }
 

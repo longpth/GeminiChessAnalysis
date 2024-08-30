@@ -1,5 +1,9 @@
 # GeminiChessAnalysis
 
+## Demonstration
+
+[![Chess Analysis App | Android Xamarin | Google Gemini | Stockfish 16](http://img.youtube.com/vi/v=otJleQ1MLOM/0.jpg)](https://www.youtube.com/watch?v=otJleQ1MLOM "Chess Analysis App | Android Xamarin | Google Gemini | Stockfish 16")
+
 GeminiChessAnalysis is a Xamarin.Forms application designed to enhance chess game analysis and learning, currently run as an Anrdoid app. It leverages powerful chess engines and provides an intuitive interface for users to study and improve their chess skills.
 
 ## Features
